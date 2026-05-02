@@ -18,7 +18,7 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
     
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             max_tokens=2000,
             temperature=0,
             messages=[
@@ -46,7 +46,7 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
         )
         
         retry_response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             max_tokens=2000,
             temperature=0,
             messages=[
