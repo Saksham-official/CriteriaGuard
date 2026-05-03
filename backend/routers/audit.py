@@ -14,11 +14,23 @@ async def get_audit_trail():
         # Verify the chain integrity dynamically
         valid = True
         verification_results = []
-        
-        for i in range(len(logs)):
-            log = logs[i]
+        for log in logs:
+            import json
             
-            content_to_hash = f"{log['previous_hash']}{log['action_type']}{log['actor']}{log['target_id']}{log['result']}{log['timestamp']}"
+            # Normalize timestamp for stable verification
+            raw_ts = log['timestamp']
+            stable_ts = raw_ts.replace(' ', 'T').split('.')[0]
+            if stable_ts.endswith('Z'): stable_ts = stable_ts[:-1]
+
+            payload = {
+                "previous_hash": str(log['previous_hash']),
+                "action_type": str(log['action_type']),
+                "actor": str(log['actor']),
+                "target_id": str(log['target_id']),
+                "result": str(log['result']),
+                "timestamp": stable_ts
+            }
+            content_to_hash = json.dumps(payload, sort_keys=True)
             computed_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
             
             is_intact = computed_hash == log['entry_hash']
@@ -35,5 +47,14 @@ async def get_audit_trail():
             "logs": logs,
             "verification": verification_results
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/clear")
+async def clear_audit_logs():
+    try:
+        # Delete all logs. In production, this would be highly restricted.
+        supabase.table("audit_log").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute()
+        return {"status": "success", "message": "Audit trail cleared for demo."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
