@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pdfplumber
+PyMuPDF
+groq
+pydantic
+supabase
+python-multipart
+python-dotenv
+Pillow
+google-cloud-vision
+pytesseract
+xhtml2pdf
+jinja2
+python-docx
