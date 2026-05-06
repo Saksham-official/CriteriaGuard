@@ -12,8 +12,7 @@ def log_audit_action(action_type: str, actor: str, target_type: str, target_id: 
     if last_log_res.data and len(last_log_res.data) > 0:
         previous_hash = last_log_res.data[0]["entry_hash"]
         
-    timestamp_obj = datetime.utcnow()
-    timestamp = timestamp_obj.strftime("%Y-%m-%dT%H:%M:%S")
+    timestamp = datetime.utcnow().isoformat(timespec='seconds')
     
     # Canonical JSON for deterministic hashing
     payload = {

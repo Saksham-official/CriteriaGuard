@@ -11,6 +11,7 @@ from services.image_preprocessor import preprocess_image
 from services.ocr import extract_text_from_image
 from engines.doc_probe import extract_value_for_criterion
 from engines.verdict_core import compute_verdict
+from services.audit import log_audit_action
 
 router = APIRouter(prefix="/api/bidders", tags=["bidders"])
 
@@ -99,6 +100,7 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
 async def upload_bidder_documents(
     tender_id: str = Form(...),
     bidder_name: str = Form(...),
+    officer_id: str = Form("SYSTEM_OR_OFFICER"),
     files: List[UploadFile] = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
@@ -112,6 +114,16 @@ async def upload_bidder_documents(
         bidder_id = bidder_res.data[0]["id"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    # Log to Audit
+    log_audit_action(
+        action_type="BIDDER_UPLOAD",
+        actor=officer_id,
+        target_type="bidder",
+        target_id=bidder_id,
+        result="success",
+        metadata={"bidder_name": bidder_name, "files_count": len(files)}
+    )
 
     # 2. Save Files
     saved_paths = []

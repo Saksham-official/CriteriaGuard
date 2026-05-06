@@ -9,7 +9,7 @@ from services.audit import log_audit_action
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 @router.get("/export/{tender_id}")
-async def export_tender_report(tender_id: str):
+async def export_tender_report(tender_id: str, officer_id: str = "SYSTEM_OR_OFFICER"):
     try:
         # Fetch tender
         t_res = supabase.table("tenders").select("*").eq("id", tender_id).execute()
@@ -50,7 +50,7 @@ async def export_tender_report(tender_id: str):
         # Log to Audit
         log_audit_action(
             action_type="REPORT_EXPORT",
-            actor="SYSTEM_OR_OFFICER",
+            actor=officer_id,
             target_type="tender",
             target_id=tender_id,
             result="success",

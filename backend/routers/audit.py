@@ -17,9 +17,10 @@ async def get_audit_trail():
         for log in logs:
             import json
             
-            # Normalize timestamp for stable verification
-            raw_ts = log['timestamp']
-            stable_ts = raw_ts.replace(' ', 'T').split('.')[0]
+            # Normalize timestamp for stable verification (YYYY-MM-DDTHH:MM:SS)
+            raw_ts = str(log['timestamp'])
+            # Replace space with T, remove subseconds and timezone offset
+            stable_ts = raw_ts.replace(' ', 'T').split('.')[0].split('+')[0]
             if stable_ts.endswith('Z'): stable_ts = stable_ts[:-1]
 
             payload = {
@@ -47,14 +48,5 @@ async def get_audit_trail():
             "logs": logs,
             "verification": verification_results
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.delete("/clear")
-async def clear_audit_logs():
-    try:
-        # Delete all logs. In production, this would be highly restricted.
-        supabase.table("audit_log").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute()
-        return {"status": "success", "message": "Audit trail cleared for demo."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

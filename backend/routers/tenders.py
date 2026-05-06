@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import shutil
@@ -8,6 +8,7 @@ import uuid
 from services.pdf_extractor import extract_text_from_pdf, format_pages_for_prompt
 from engines.criteria_lens import extract_criteria_from_text
 from engines.ambiguity_resolver import resolve_ambiguity
+from services.audit import log_audit_action
 from db.database import supabase
 from models.criterion import CriterionSchema
 
@@ -29,7 +30,7 @@ UPLOAD_DIR = "uploads/tenders"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload")
-async def upload_tender(file: UploadFile = File(...)):
+async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SYSTEM_OR_OFFICER")):
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
         
@@ -49,6 +50,16 @@ async def upload_tender(file: UploadFile = File(...)):
         tender_id = tender_res.data[0]["id"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    # Log to Audit
+    log_audit_action(
+        action_type="TENDER_UPLOAD",
+        actor=officer_id,
+        target_type="tender",
+        target_id=tender_id,
+        result="success",
+        metadata={"filename": file.filename}
+    )
 
     # 2. Extract text from PDF
     pages = extract_text_from_pdf(file_path)
