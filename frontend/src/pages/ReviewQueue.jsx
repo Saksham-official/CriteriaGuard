@@ -161,8 +161,9 @@ const ReviewQueue = () => {
 
   const handleOverride = async (verdictId, newStatus, reason) => {
     try {
+      const officerId = localStorage.getItem('officerId') || 'ANONYMOUS_OFFICER';
       await axios.post(`${API_BASE_URL}/api/verdicts/${verdictId}/override`, {
-        officer_id: "OFFICER_001", // Hardcoded for demo
+        officer_id: officerId,
         new_status: newStatus,
         reason: reason
       });

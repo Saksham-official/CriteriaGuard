@@ -24,6 +24,7 @@ const Upload = () => {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('officer_id', localStorage.getItem('officerId') || 'SYSTEM_OR_OFFICER');
 
     setLoading(true);
     setError('');
