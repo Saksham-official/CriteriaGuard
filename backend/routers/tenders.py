@@ -45,7 +45,8 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
         tender_res = supabase.table("tenders").insert({
             "title": file.filename,
             "file_path": file_path,
-            "status": "processing"
+            "status": "processing",
+            "created_by": officer_id
         }).execute()
         tender_id = tender_res.data[0]["id"]
     except Exception as e:

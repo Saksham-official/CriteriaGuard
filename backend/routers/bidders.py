@@ -109,7 +109,8 @@ async def upload_bidder_documents(
         bidder_res = supabase.table("bidders").insert({
             "tender_id": tender_id,
             "name": bidder_name,
-            "status": "processing"
+            "status": "processing",
+            "created_by": officer_id
         }).execute()
         bidder_id = bidder_res.data[0]["id"]
     except Exception as e:
