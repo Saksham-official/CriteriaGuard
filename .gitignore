@@ -59,3 +59,10 @@ backend/temp/
 backend/test_data/
 frontend/.env.local
 frontend/.env.*.local
+
+checklist.md
+
+winning.md
+ps.md
+mysol.md
+PROMPT_ENGINEERING.md

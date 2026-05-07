@@ -32,7 +32,8 @@ Return a JSON array. Each element must match this exact schema:
     "comparison": "<greater_than_equal | equal | at_least_count | null>"
   }},
   "evidence_documents": ["<document type 1>", "<document type 2>"],
-  "source_clause": "<e.g. Clause 4.2(b) or Section 3>"
+  "source_clause": "<e.g. Clause 4.2(b) or Section 3>",
+  "source_page": <integer page number>
 }}
 
 Rules:
@@ -42,6 +43,7 @@ Rules:
 - Include every criterion you find — do not skip any
 - Source clause must reference the actual clause/section number from the document
 - If a clause number is not present, use the section heading
+- IMPORTANT: Use the "--- Page X ---" markers in the text to determine the source_page value.
 
 TENDER DOCUMENT:
 ---

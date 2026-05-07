@@ -4,6 +4,11 @@ from datetime import datetime, timezone
 from db.database import supabase
 
 def log_audit_action(action_type: str, actor: str, target_type: str, target_id: str, result: str, metadata: dict):
+    if not supabase:
+        from utils.logger import logger
+        logger.warning(f"Skipping audit log (Supabase not initialized): {action_type} for {target_id}")
+        return
+
     # Fetch previous hash
     # In a real system, you'd fetch the latest sequence to chain the hash securely.
     last_log_res = supabase.table("audit_log").select("entry_hash").order("sequence", desc=True).limit(1).execute()

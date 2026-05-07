@@ -16,3 +16,4 @@ class CriterionSchema(BaseModel):
     threshold: Optional[ThresholdSchema] = None
     evidence_documents: List[str]
     source_clause: str = Field(..., description="e.g. Clause 4.2(b) or Section 3")
+    source_page: Optional[int] = Field(1, description="The page number where the criterion was found")

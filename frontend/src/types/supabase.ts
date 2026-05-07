@@ -108,6 +108,7 @@ export interface Database {
           threshold_period: string | null
           threshold_unit: string | null
           threshold_value: number | null
+          source_page: number | null
         }
         Insert: {
           approved_at?: string | null
@@ -243,6 +244,7 @@ export interface Database {
           locked_by?: string | null
           status?: string
           title?: string
+          created_by?: string | null
         }
         Relationships: []
       }

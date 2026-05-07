@@ -33,7 +33,7 @@ const CriteriaReview = () => {
         approved_at: new Date().toISOString()
       });
       setCriteria(criteria.map(c => 
-        c.id === criterionId ? { ...c, approved_at: new Date().toISOString(), approved: true } : c
+        c.id === criterionId ? { ...c, approved_at: new Date().toISOString() } : c
       ));
     } catch (err) {
       setError('Failed to approve criterion.');
@@ -84,7 +84,7 @@ const CriteriaReview = () => {
         mandatory: true,
         mandatory_confidence: 'manual',
         source_clause: 'Manually Added by Officer',
-        approved: false,
+        approved_at: null,
         removed: false,
         is_new: true
       },
@@ -100,7 +100,7 @@ const CriteriaReview = () => {
   if (error) return <div className="min-h-screen flex items-center justify-center text-xl text-red-500">{error}</div>;
 
   const activeCriteria = criteria.filter(c => !c.removed);
-  const allApproved = activeCriteria.length > 0 && activeCriteria.every(c => c.approved);
+  const allApproved = activeCriteria.length > 0 && activeCriteria.every(c => c.approved_at);
 
   return (
     <div className="min-h-screen bg-slate-50 p-8 md:p-12">
@@ -152,7 +152,7 @@ const CriteriaReview = () => {
             </div>
             <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100">
               <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-2">Unverified</div>
-              <div className="text-3xl font-black text-amber-600">{activeCriteria.filter(c => !c.approved).length}</div>
+              <div className="text-3xl font-black text-amber-600">{activeCriteria.filter(c => !c.approved_at).length}</div>
             </div>
             <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
               <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Manual Edits</div>
@@ -195,7 +195,7 @@ const CriteriaReview = () => {
                           {criterion.criterion_code}
                         </div>
                         
-                        {!criterion.approved ? (
+                        {!criterion.approved_at ? (
                           <div className="flex gap-2">
                             <select 
                               value={criterion.category}
@@ -228,7 +228,7 @@ const CriteriaReview = () => {
                         )}
                       </div>
 
-                      {!criterion.approved ? (
+                      {!criterion.approved_at ? (
                         <textarea 
                           value={criterion.text}
                           onChange={(e) => updateCriterion(criterion.id, 'text', e.target.value)}
@@ -243,7 +243,7 @@ const CriteriaReview = () => {
                       <div className="bg-slate-50/50 rounded-3xl p-6 border border-slate-100">
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Source Context (Doc Fragment)</span>
-                          <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest">Page {criterion.page_number || '1'}</span>
+                          <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest">Page {criterion.source_page || '1'}</span>
                         </div>
                         <p className="text-sm text-slate-600 font-medium leading-relaxed italic line-clamp-3">
                           "...{criterion.source_context || criterion.text}..."

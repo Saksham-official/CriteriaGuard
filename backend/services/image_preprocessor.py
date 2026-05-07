@@ -1,5 +1,6 @@
 from PIL import Image, ImageEnhance, ImageFilter
 import os
+from utils.logger import logger
 
 def preprocess_image(image_path: str, output_path: str) -> str:
     """
@@ -26,6 +27,6 @@ def preprocess_image(image_path: str, output_path: str) -> str:
             
         return output_path
     except Exception as e:
-        print(f"Error in image preprocessing: {e}")
+        logger.error(f"Error in image preprocessing: {e}", exc_info=True)
         # If preprocessing fails, return original path
         return image_path

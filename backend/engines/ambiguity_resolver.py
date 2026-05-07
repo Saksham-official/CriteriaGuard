@@ -1,6 +1,7 @@
 import os
 import json
 from groq import Groq
+from utils.logger import logger
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -48,7 +49,7 @@ def resolve_ambiguity(criterion_text: str, source_clause: str) -> dict:
         
         return json.loads(raw_output.strip())
     except Exception as e:
-        print(f"Ambiguity resolution failed: {e}")
+        logger.error(f"Ambiguity resolution failed: {e}", exc_info=True)
         return {
             "likely_mandatory": True,
             "confidence": "low",

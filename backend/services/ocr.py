@@ -1,6 +1,7 @@
 import os
 import base64
 from groq import Groq
+from utils.logger import logger
 
 class OCRResult:
     def __init__(self, text: str, confidence: float, quality: str):
@@ -48,5 +49,5 @@ def extract_text_from_image(image_path: str) -> OCRResult:
         return OCRResult(text=text, confidence=confidence, quality=quality)
         
     except Exception as e:
-        print(f"Groq Vision OCR failed: {e}")
+        logger.error(f"Groq Vision OCR failed: {e}", exc_info=True)
         return OCRResult(text="", confidence=0.0, quality="low")

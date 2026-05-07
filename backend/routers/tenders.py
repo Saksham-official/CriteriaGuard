@@ -108,7 +108,8 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
             "mandatory": crit_dict["mandatory"],
             "mandatory_confidence": crit_dict["mandatory_confidence"],
             "evidence_documents": crit_dict["evidence_documents"],
-            "source_clause": crit_dict["source_clause"]
+            "source_clause": crit_dict["source_clause"],
+            "source_page": crit_dict.get("source_page", 1)
         }
         
         if crit_dict.get("threshold"):

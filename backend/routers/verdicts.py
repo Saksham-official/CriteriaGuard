@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 
-from datetime import datetime
+from datetime import datetime, timezone
 from db.database import supabase
 from services.audit import log_audit_action
 
@@ -49,7 +49,7 @@ async def override_verdict(verdict_id: str, req: OverrideRequest):
             "overridden_by": req.officer_id,
             "override_action": "manual_override",
             "override_reason": req.reason,
-            "overridden_at": datetime.utcnow().isoformat()
+            "overridden_at": datetime.now(timezone.utc).isoformat(timespec='seconds')
         }).eq("id", verdict_id).execute()
         
         # Log to Audit
