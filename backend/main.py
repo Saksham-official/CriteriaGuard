@@ -38,14 +38,23 @@ async def startup_event():
     logger.info("Initializing CriteriaGuard Production Environment...")
     
     # Critical dependency checks
-    required_vars = ["GROQ_API_KEY", "SUPABASE_URL", "SUPABASE_KEY"]
+    required_vars = ["GROQ_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_KEY"]
     missing = [var for var in required_vars if not os.getenv(var)]
+    
+    for var in required_vars:
+        if os.getenv(var):
+            logger.info(f"Configuration found: {var}")
+        else:
+            logger.error(f"Missing configuration: {var}")
     
     if missing:
         logger.critical(f"Startup failed. Missing environment variables: {', '.join(missing)}")
+        # On Render, we want to stay alive long enough for logs to flush
+        import asyncio
+        await asyncio.sleep(2)
         sys.exit(1)
         
-    logger.info("Environment variables validated successfully.")
+    logger.info("All environment variables validated. System ready.")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

@@ -3,6 +3,7 @@ import fitz  # PyMuPDF
 from typing import List
 import os
 from services.ocr import extract_text_from_image
+from utils.logger import logger
 
 class DocPage:
     def __init__(self, page_number: int, text: str):
@@ -18,7 +19,7 @@ def extract_text_from_pdf(file_path: str) -> List[DocPage]:
             
             # If text is missing or suspiciously short (scanned PDF), use OCR
             if not text or len(text) < 50:
-                print(f"Page {i+1} appears to be a scan. Triggering OCR...")
+                logger.info(f"Page {i+1} appears to be a scan. Triggering OCR...")
                 # Render page to image
                 pix = page.get_pixmap()
                 temp_image = f"temp_page_{i}.png"
@@ -36,7 +37,7 @@ def extract_text_from_pdf(file_path: str) -> List[DocPage]:
                 pages.append(DocPage(page_number=i + 1, text=text))
         doc.close()
     except Exception as e:
-        print(f"Extraction failed: {e}")
+        logger.error(f"Extraction failed: {e}", exc_info=True)
     
     return pages
 

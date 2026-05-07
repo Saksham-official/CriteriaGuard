@@ -3,16 +3,12 @@ import sys
 import os
 
 def setup_logging():
-    # Create logs directory if it doesn't exist
-    os.makedirs("logs", exist_ok=True)
-    
-    # Configure logging
+    # Configure logging for cloud environment (stdout only)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler("logs/backend.log")
+            logging.StreamHandler(sys.stdout)
         ]
     )
     
