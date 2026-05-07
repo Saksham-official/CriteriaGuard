@@ -38,8 +38,8 @@ Three principles drive every design decision:
 │          ┌─────────────────────────┼──────────────────────┐        │
 │          │                         │                       │        │
 │  ┌───────▼──────┐  ┌───────────────▼──┐  ┌───────────────▼─────┐  │
-│  │   Supabase   │  │  Claude Sonnet   │  │  Google Vision API  │  │
-│  │  PostgreSQL  │  │   (Anthropic)    │  │   + Tesseract OCR   │  │
+│  │   Supabase   │  │  Llama 3.3 70B   │  │  Google Vision API  │  │
+│  │  PostgreSQL  │  │      (Groq)      │  │   + Tesseract OCR   │  │
 │  │  + Storage   │  │   Temperature=0  │  │   (local fallback)  │  │
 │  └──────────────┘  └──────────────────┘  └─────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
@@ -71,9 +71,9 @@ Tender PDF
          │ chunks[]
          ▼
 ┌─────────────────┐
-│  Claude Sonnet  │  System: procurement analyst persona
-│  (Extraction)   │  Temp: 0 | Max tokens: 2000
-│                 │  Output: strict JSON schema (see PROMPT_ENGINEERING.md)
+│  Llama 3.3 70B  │  System: procurement analyst persona
+│  (Extraction)   │  Temp: 0 | Max tokens: 4000
+│                 │  Output: strict JSON schema
 └────────┬────────┘
          │ raw_criteria_json
          ▼

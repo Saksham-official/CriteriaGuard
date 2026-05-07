@@ -61,8 +61,8 @@ const Upload = () => {
             <div className="flex gap-4 group">
               <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">1</div>
               <div>
-                <h3 className="font-bold text-slate-800">Upload Tender PDF</h3>
-                <p className="text-xs text-slate-400 mt-1">Upload the master tender document. Our AI will extract all mandatory eligibility criteria and numeric thresholds.</p>
+                <h3 className="font-bold text-slate-800">Upload Tender Document</h3>
+                <p className="text-xs text-slate-400 mt-1">Upload the master tender (PDF, Word, or Scanned Image). Our AI will extract all mandatory eligibility criteria and numeric thresholds using OCR if needed.</p>
               </div>
             </div>
             
@@ -118,7 +118,7 @@ const Upload = () => {
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/0 group-hover:to-blue-50/50 transition-all duration-500"></div>
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.docx,.jpg,.jpeg,.png,.tiff"
                 onChange={handleFileChange}
                 className="hidden"
                 id="file-upload"
@@ -127,7 +127,7 @@ const Upload = () => {
                 <svg className="w-10 h-10 text-slate-400 group-hover:text-blue-500 transition-colors duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
               </div>
               <span className="text-slate-600 font-black text-xl text-center relative z-10">
-                {file ? file.name : 'Drop Tender PDF here'}
+                {file ? file.name : 'Drop Tender PDF, DOCX or Pic here'}
               </span>
               {!file && <span className="text-slate-400 text-xs mt-3 uppercase tracking-[0.2em] font-black relative z-10">Maximum file size 25MB</span>}
             </div>

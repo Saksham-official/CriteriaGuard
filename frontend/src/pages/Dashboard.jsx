@@ -63,7 +63,7 @@ const Dashboard = () => {
               Review Queue
             </button>
             <a 
-              href={`${API_BASE_URL}/api/reports/export/${tenderId}`}
+              href={`${API_BASE_URL}/api/reports/export/${tenderId}?officer_id=${localStorage.getItem('officerId') || 'SYSTEM_OR_OFFICER'}`}
               className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-black transition shadow-sm flex items-center gap-2"
               download
             >
