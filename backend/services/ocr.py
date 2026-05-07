@@ -42,9 +42,10 @@ def extract_text_from_image(image_path: str) -> OCRResult:
             max_tokens=4000,
         )
         
-        text = response.choices[0].message.content
-        confidence = 0.9 if len(text.strip()) > 10 else 0.4
-        quality = "high" if len(text.strip()) > 50 else "low"
+        text = response.choices[0].message.content or ""
+        stripped_text = text.strip()
+        confidence = 0.9 if len(stripped_text) > 10 else 0.4
+        quality = "high" if len(stripped_text) > 50 else "low"
         
         return OCRResult(text=text, confidence=confidence, quality=quality)
         

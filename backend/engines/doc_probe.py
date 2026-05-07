@@ -20,6 +20,7 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
         criterion_id=criterion_dict.get('id', 'unknown')
     )
     
+    raw_output = ""
     try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -31,7 +32,8 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
             ]
         )
         
-        raw_output = response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        raw_output = content.strip() if content else ""
         
         # More robust JSON cleaning
         if "```json" in raw_output:
@@ -57,12 +59,13 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
-                {"role": "assistant", "content": raw_output if 'raw_output' in locals() else "{}"},
+                {"role": "assistant", "content": raw_output or "{}"},
                 {"role": "user", "content": retry_prompt}
             ]
         )
         
-        retry_output = retry_response.choices[0].message.content.strip()
+        retry_content = retry_response.choices[0].message.content
+        retry_output = retry_content.strip() if retry_content else ""
         if "```json" in retry_output:
             retry_output = retry_output.split("```json")[1].split("```")[0].strip()
         elif "```" in retry_output:

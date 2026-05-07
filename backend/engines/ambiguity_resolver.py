@@ -44,6 +44,9 @@ def resolve_ambiguity(criterion_text: str, source_clause: str) -> dict:
         )
         
         raw_output = response.choices[0].message.content
+        if not raw_output:
+            raise ValueError("Model returned empty content")
+
         if "```json" in raw_output:
             raw_output = raw_output.split("```json")[1].split("```")[0]
         

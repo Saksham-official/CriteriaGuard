@@ -97,7 +97,38 @@ const CriteriaReview = () => {
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-xl text-gray-600">Loading extracted criteria...</div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center text-xl text-red-500">{error}</div>;
+  if (error) {
+    if (error === "No criteria found for this tender") {
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white rounded-[2.5rem] p-12 shadow-2xl shadow-blue-900/5 border border-slate-100 text-center animate-in fade-in zoom-in duration-500">
+            <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
+              <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-4">No Criteria Found</h2>
+            <p className="text-slate-500 font-medium mb-10 leading-relaxed">
+              The AI analysis could not identify eligibility requirements in this document fragment. You can manually add them or try re-uploading the full document.
+            </p>
+            <div className="space-y-4">
+              <button 
+                onClick={addCriterion}
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 hover:scale-[1.02] transition-all"
+              >
+                Add Criterion Manually
+              </button>
+              <button 
+                onClick={() => navigate('/upload')}
+                className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Return to Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return <div className="min-h-screen flex items-center justify-center text-xl text-red-500">{error}</div>;
+  }
 
   const activeCriteria = criteria.filter(c => !c.removed);
   const allApproved = activeCriteria.length > 0 && activeCriteria.every(c => c.approved_at);

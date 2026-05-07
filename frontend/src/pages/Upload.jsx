@@ -10,6 +10,25 @@ const Upload = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const [dragging, setDragging] = useState(false);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setFile(e.dataTransfer.files[0]);
+    }
+  };
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -113,7 +132,12 @@ const Upload = () => {
 
             <div 
               onClick={() => document.getElementById('file-upload').click()}
-              className="border-2 border-dashed border-slate-200 rounded-[2rem] p-16 flex flex-col items-center justify-center bg-slate-50/50 hover:bg-white hover:border-blue-400 hover:shadow-2xl hover:shadow-blue-900/5 transition-all duration-500 cursor-pointer mb-12 group relative overflow-hidden"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-[2rem] p-16 flex flex-col items-center justify-center transition-all duration-500 cursor-pointer mb-12 group relative overflow-hidden ${
+                dragging ? 'bg-blue-50 border-blue-500 shadow-2xl shadow-blue-500/10 scale-[1.02]' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-blue-400 hover:shadow-2xl hover:shadow-blue-900/5'
+              }`}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/0 group-hover:to-blue-50/50 transition-all duration-500"></div>
               <input
