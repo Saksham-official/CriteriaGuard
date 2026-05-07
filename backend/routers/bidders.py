@@ -68,6 +68,14 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                 logger.error(f"Failed to parse document {fname}: {e}", exc_info=True)
                 continue
 
+        if not all_docs_text:
+             logger.error(f"No text extracted from ANY documents for bidder {bidder_id}")
+             db.table("bidders").update({
+                 "status": "failed",
+                 "current_step": "Error: Could not extract text from any uploaded documents."
+             }).eq("id", bidder_id).execute()
+             return
+
         # 3. For each criterion, run DocProbe
         total_criteria = len(criteria)
         db.table("bidders").update({"total_count": total_criteria, "processed_count": 0}).eq("id", bidder_id).execute()
@@ -110,43 +118,49 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                 extraction = extract_value_for_criterion(dict(criterion), final_context)
 
                 # Save extraction to DB
-                ext_res = db.table("extractions").insert({
-                    "criterion_id": criterion["id"],
-                    "bidder_id": bidder_id,
-                    "value_found": extraction.value_found,
-                    "not_found_reason": extraction.not_found_reason,
-                    "extracted_value": extraction.extracted_value,
-                    "extracted_value_numeric": extraction.extracted_value_numeric,
-                    "source_document": extraction.source_document,
-                    "source_page": extraction.source_page,
-                    "source_excerpt": extraction.source_excerpt,
-                    "ocr_quality": extraction.ocr_quality,
-                    "extraction_confidence": extraction.alignment_score * 0.5 + extraction.authenticity_score * 0.5
-                }).execute()
-
-                if ext_res.data and len(ext_res.data) > 0:
-                    extraction_dict: dict[str, Any] = ext_res.data[0]  # type: ignore[assignment]
-                    extraction_id = str(extraction_dict["id"])
-
-                    # 4. Compute Verdict
-                    verdict = compute_verdict(dict(criterion), dict(extraction_dict))
-
-                    db.table("verdicts").insert({
+                try:
+                    ext_res = db.table("extractions").insert({
                         "criterion_id": criterion["id"],
                         "bidder_id": bidder_id,
-                        "extraction_id": extraction_id,
-                        "status": verdict["status"],
-                        "reason": verdict["reason"],
-                        "review_sub_reason": verdict.get("review_sub_reason")
+                        "value_found": extraction.value_found,
+                        "not_found_reason": extraction.not_found_reason,
+                        "extracted_value": extraction.extracted_value,
+                        "extracted_value_numeric": extraction.extracted_value_numeric,
+                        "source_document": extraction.source_document,
+                        "source_page": extraction.source_page,
+                        "source_excerpt": extraction.source_excerpt,
+                        "ocr_quality": extraction.ocr_quality,
+                        "extraction_confidence": extraction.alignment_score * 0.5 + extraction.authenticity_score * 0.5
                     }).execute()
-                else:
-                    logger.error(f"Failed to save extraction for criterion {criterion['id']}")
 
-                # Update progress
-                db.table("bidders").update({"processed_count": i + 1}).eq("id", bidder_id).execute()
+                    if ext_res.data and len(ext_res.data) > 0:
+                        extraction_dict: dict[str, Any] = ext_res.data[0]  # type: ignore[assignment]
+                        extraction_id = str(extraction_dict["id"])
+
+                        # 4. Compute Verdict
+                        verdict = compute_verdict(dict(criterion), dict(extraction_dict))
+
+                        db.table("verdicts").insert({
+                            "criterion_id": criterion["id"],
+                            "bidder_id": bidder_id,
+                            "extraction_id": extraction_id,
+                            "status": verdict["status"],
+                            "reason": verdict["reason"],
+                            "review_sub_reason": verdict.get("review_sub_reason")
+                        }).execute()
+                    else:
+                        logger.error(f"Failed to save extraction for criterion {criterion['id']}")
+                except Exception as db_err:
+                    logger.error(f"Database error during extraction/verdict save: {db_err}")
 
             except Exception as e:
                 logger.error(f"Error extracting for criterion {criterion['id']}: {e}", exc_info=True)
+            finally:
+                # IMPORTANT: Always increment processed_count so the UI doesn't hang
+                try:
+                    db.table("bidders").update({"processed_count": i + 1}).eq("id", bidder_id).execute()
+                except Exception as p_err:
+                    logger.error(f"Failed to update processed_count: {p_err}")
 
         # Cleanup temp files and original uploads
         for f in temp_files_to_cleanup:
