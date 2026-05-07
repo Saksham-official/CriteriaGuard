@@ -11,6 +11,7 @@ from services.ocr import extract_text_from_image
 from engines.criteria_lens import extract_criteria_from_text
 from engines.ambiguity_resolver import resolve_ambiguity
 from services.audit import log_audit_action
+from utils.logger import logger
 from db.database import get_db
 from models.criterion import CriterionSchema
 
@@ -89,10 +90,26 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
 
     tender_text = format_pages_for_prompt(pages)
 
+    # Guard: if the entire extracted text is too short the LLM won't find anything.
+    if len(tender_text.strip()) < 200:
+        db.table("tenders").update({"status": "failed"}).eq("id", tender_id).execute()
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Extracted text is too short to contain eligibility criteria. "
+                "The PDF may be a scanned image without OCR support, password-protected, "
+                "or contain no machine-readable text."
+            )
+        )
+
+    logger.info(f"Tender {tender_id}: extracted {len(pages)} pages, {len(tender_text)} chars.")
+
     # 3. Extract criteria using LLM
     try:
         criteria_list = extract_criteria_from_text(tender_text)
+        logger.info(f"Extracted {len(criteria_list)} criteria from tender {tender_id}")
     except Exception as e:
+        logger.error(f"LLM extraction exception for tender {tender_id}: {e}", exc_info=True)
         db.table("tenders").update({"status": "failed"}).eq("id", tender_id).execute()
         raise HTTPException(status_code=500, detail=f"LLM extraction failed: {str(e)}")
 
@@ -126,7 +143,21 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
 
     if not criteria_inserts:
         db.table("tenders").update({"status": "failed"}).eq("id", tender_id).execute()
-        raise HTTPException(status_code=422, detail="No criteria could be extracted from this document. Please ensure it contains clear eligibility requirements.")
+        logger.error(
+            f"No criteria extracted for tender {tender_id}. "
+            f"Text length: {len(tender_text)} chars, pages: {len(pages)}. "
+            "Check logs above for LLM raw output to diagnose the issue."
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "No eligibility criteria could be extracted. Possible causes: "
+                "(1) Groq API rate limit hit — wait 60s and retry, "
+                "(2) Document has no eligibility/qualification section, "
+                "(3) GROQ_API_KEY is invalid or quota exhausted. "
+                "Check server logs for the exact LLM response."
+            )
+        )
 
     db.table("criteria").insert(criteria_inserts).execute()
 
