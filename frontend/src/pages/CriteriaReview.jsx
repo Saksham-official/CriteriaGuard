@@ -26,13 +26,51 @@ const CriteriaReview = () => {
   }, [tenderId]);
 
   const approveCriterion = async (criterionId) => {
-    setCriteria(criteria.map(c => 
-      c.id === criterionId ? { ...c, approved: true, removed: false } : c
-    ));
+    try {
+      const officerId = localStorage.getItem('officerId') || 'SYSTEM_OR_OFFICER';
+      await axios.patch(`${API_BASE_URL}/api/tenders/${tenderId}/criteria/${criterionId}`, {
+        approved_by: officerId,
+        approved_at: new Date().toISOString()
+      });
+      setCriteria(criteria.map(c => 
+        c.id === criterionId ? { ...c, approved_at: new Date().toISOString(), approved: true } : c
+      ));
+    } catch (err) {
+      setError('Failed to approve criterion.');
+    }
   };
 
-  const removeCriterion = (criterionId) => {
-    setCriteria(criteria.filter(c => c.id !== criterionId));
+  const removeCriterion = async (criterionId) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/api/tenders/${tenderId}/criteria/${criterionId}`);
+      setCriteria(criteria.filter(c => c.id !== criterionId));
+    } catch (err) {
+      setError('Failed to remove criterion.');
+    }
+  };
+
+  const saveCriterion = async (criterion) => {
+    try {
+      if (criterion.is_new) {
+        const response = await axios.post(`${API_BASE_URL}/api/tenders/${tenderId}/criteria`, {
+          criterion_code: criterion.criterion_code,
+          text: criterion.text,
+          category: criterion.category,
+          mandatory: criterion.mandatory,
+          source_clause: criterion.source_clause
+        });
+        setCriteria(criteria.map(c => c.id === criterion.id ? { ...response.data, is_new: false } : c));
+      } else {
+        await axios.patch(`${API_BASE_URL}/api/tenders/${tenderId}/criteria/${criterion.id}`, {
+          text: criterion.text,
+          category: criterion.category,
+          mandatory: criterion.mandatory
+        });
+        // Success
+      }
+    } catch (err) {
+      setError('Failed to save criterion.');
+    }
   };
 
   const addCriterion = () => {
@@ -139,7 +177,7 @@ const CriteriaReview = () => {
                 }`}
               >
                 {/* Status Overlay for Approved */}
-                {criterion.approved && (
+                {(criterion.approved || criterion.approved_at) && (
                   <div className="absolute top-0 right-0 p-4 z-20">
                     <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
@@ -236,21 +274,29 @@ const CriteriaReview = () => {
                         </div>
                       </div>
 
-                      {!criterion.approved && (
-                        <div className="flex gap-3">
+                      {!(criterion.approved || criterion.approved_at) && (
+                        <div className="space-y-3">
+                          <div className="flex gap-3">
+                            <button 
+                              onClick={() => removeCriterion(criterion.id)}
+                              className="flex-1 py-4 rounded-2xl text-rose-600 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all font-black text-xs uppercase tracking-widest"
+                            >
+                              Remove
+                            </button>
+                            <button 
+                              onClick={() => approveCriterion(criterion.id)}
+                              className={`flex-[2] py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-xl transition-all hover:scale-105 active:scale-95 ${
+                                isAmbiguous ? 'bg-amber-500 shadow-amber-200' : 'bg-blue-600 shadow-blue-200'
+                              }`}
+                            >
+                              Approve Clause
+                            </button>
+                          </div>
                           <button 
-                            onClick={() => removeCriterion(criterion.id)}
-                            className="flex-1 py-4 rounded-2xl text-rose-600 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all font-black text-xs uppercase tracking-widest"
+                            onClick={() => saveCriterion(criterion)}
+                            className="w-full py-3 rounded-xl text-[10px] font-black text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all uppercase tracking-widest"
                           >
-                            Remove
-                          </button>
-                          <button 
-                            onClick={() => approveCriterion(criterion.id)}
-                            className={`flex-[2] py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-xl transition-all hover:scale-105 active:scale-95 ${
-                              isAmbiguous ? 'bg-amber-500 shadow-amber-200' : 'bg-blue-600 shadow-blue-200'
-                            }`}
-                          >
-                            Approve Clause
+                            Save Changes
                           </button>
                         </div>
                       )}
