@@ -83,10 +83,12 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
     # Live Groq models as of May 2026 (verified via client.models.list()).
     # llama3-8b-8192, mixtral-8x7b-32768, gemma2-9b-it, llama-3.1-70b-versatile
     # are ALL decommissioned. Do NOT add them back.
+    # NOTE: llama-4-scout is FIRST because llama-3.3-70b is consistently
+    # rate-limited on the free tier. Scout handles 67k-char docs perfectly.
     MODELS = [
-        "llama-3.3-70b-versatile",                  # 128k context, best quality
-        "meta-llama/llama-4-scout-17b-16e-instruct", # Llama 4, large context, good fallback
-        "llama-3.1-8b-instant",                     # Fast, lower TPM — last resort
+        "meta-llama/llama-4-scout-17b-16e-instruct", # Llama 4, large context, proven working
+        "llama-3.3-70b-versatile",                   # 128k context, try if scout fails
+        "llama-3.1-8b-instant",                      # Fast, lower TPM — last resort
     ]
 
     all_criteria: List[CriterionSchema] = []
@@ -98,8 +100,8 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
         chunk_criteria: List[CriterionSchema] = []
 
         for model in MODELS:
-            max_retries = 3
-            retry_delay = 15  # Start at 15s — Groq rate windows are 60s
+            max_retries = 2
+            retry_delay = 5  # scout rarely rate-limits; quick retry is fine
 
             for attempt in range(max_retries):
                 try:
