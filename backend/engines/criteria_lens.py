@@ -67,31 +67,23 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
     Extract eligibility criteria from tender text using Groq LLM.
 
     Strategy:
-    - PRIMARY: Send the entire tender text in ONE API call using llama-3.3-70b-versatile
-      (128k context window). This avoids rate-limit pressure from multiple chunk calls.
-    - FALLBACK: If the text exceeds the safe single-call limit (~100k chars), fall back to
-      chunked processing with delays between calls.
+    - PRIMARY: Send chunks of the tender text to stay within TPM/context limits.
+    - MODELS: Try robust models first, falling back to faster ones.
     """
     import time
     from groq import RateLimitError
     import httpx
 
-    # llama-3.3-70b-versatile supports 128k tokens (~500k chars).
-    # We cap at 100k chars to leave headroom for the prompt template itself.
-    # Reduced from 100k to 50k. Large documents (>50k chars) are better handled 
-    # in chunks to avoid hitting the 4k/8k output token limit during extraction.
-    SINGLE_CALL_LIMIT = 50_000
+    # Reduced from 50k to 15k to stay within free-tier TPM limits (often 6k-10k).
+    # 15k chars is ~3.5k tokens. Plus prompt and max_tokens, it should fit in ~6k-7k tokens.
+    SINGLE_CALL_LIMIT = 15_000
 
-    # Live Groq models as of May 2026 (verified via client.models.list()).
-    # llama3-8b-8192, mixtral-8x7b-32768, gemma2-9b-it, llama-3.1-70b-versatile
-    # are ALL decommissioned. Do NOT add them back.
-    # NOTE: llama-4-scout is FIRST because llama-3.3-70b is consistently
-    # rate-limited on the free tier. Scout handles 67k-char docs perfectly.
+    # Live Groq models as of May 2026.
     MODELS = [
         "meta-llama/llama-4-scout-17b-16e-instruct", # Best balance of speed/context
-        "llama-3.3-70b-versatile",                   # High precision, high rate-limit pressure
-        "qwen/qwen3-32b",                            # Excellent fallback, high TPM
-        "llama-3.1-8b-instant",                      # Fast, lowest TPM — last resort
+        "llama-3.3-70b-versatile",                   # High precision
+        "qwen/qwen3-32b",                            # Excellent fallback
+        "llama-3.1-8b-instant",                      # Fast last resort
     ]
 
     all_criteria: List[CriterionSchema] = []
@@ -102,16 +94,17 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
         user_prompt = USER_PROMPT_TEMPLATE.format(tender_text=text_chunk)
         chunk_criteria: List[CriterionSchema] = []
 
+        all_rate_limited = True
         for model in MODELS:
             max_retries = 2
-            retry_delay = 5  # scout rarely rate-limits; quick retry is fine
+            retry_delay = 5
 
             for attempt in range(max_retries):
                 try:
                     logger.info(f"[{chunk_label}] Calling Groq model={model}, attempt={attempt+1}...")
                     response = client.chat.completions.create(
                         model=model,
-                        max_tokens=8192,  # Increased from 4096 to prevent truncation
+                        max_tokens=2048,  # Reduced from 8192 to stay under TPM limits
                         temperature=0,
                         timeout=httpx.Timeout(90.0, connect=10.0),
                         messages=[
@@ -119,6 +112,7 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
                             {"role": "user", "content": user_prompt}
                         ]
                     )
+                    all_rate_limited = False # At least one model responded
 
                     content = response.choices[0].message.content
                     raw_output = content.strip() if content else ""
@@ -128,7 +122,7 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
                         logger.warning(f"[{chunk_label}] Empty response from {model}")
                         break  # Try next model
 
-                    # Strip markdown code fences if present
+                    # Strip markdown code fences
                     if "```json" in raw_output:
                         raw_output = raw_output.split("```json")[1].split("```")[0].strip()
                     elif "```" in raw_output:
@@ -136,40 +130,27 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
 
                     # Parse JSON
                     try:
-                        # First try: strict JSON parse
                         data = json.loads(raw_output)
                     except json.JSONDecodeError:
-                        # Second try: regex extraction
                         logger.warning(f"[{chunk_label}] JSON parse failed, trying regex extraction...")
-                        # Look for the outermost [ ... ]
                         match = re.search(r'\[\s*\{.*\}\s*\]', raw_output, re.DOTALL)
-                        if not match:
-                            # Try to find just a list of objects if the brackets are missing/mangled
-                            match = re.search(r'(\[\s*\{.*\}\s*\]|\{\s*".*\}\s*)', raw_output, re.DOTALL)
-                        
                         if match:
                             try:
                                 json_str = match.group(0)
-                                # Basic fix for truncated JSON: if it ends with a comma or open brace, try to close it
-                                if json_str.endswith(','):
-                                    json_str = json_str[:-1] + ']'
-                                if not json_str.endswith(']'):
-                                    json_str += ']'
+                                if json_str.endswith(','): json_str = json_str[:-1] + ']'
+                                if not json_str.endswith(']'): json_str += ']'
                                 data = json.loads(json_str)
-                            except Exception:
-                                logger.error(f"[{chunk_label}] JSON recovery failed for {model}.")
-                                break  # Try next model
+                            except:
+                                break
                         else:
-                            logger.error(f"[{chunk_label}] No JSON found in response from {model}.")
-                            break  # Try next model
+                            break
 
                     if not isinstance(data, list):
                         data = [data]
 
                     added = 0
                     for item in data:
-                        if not isinstance(item, dict):
-                            continue
+                        if not isinstance(item, dict): continue
                         obj = _coerce_criterion(item)
                         if obj is not None and obj.id not in seen_codes:
                             chunk_criteria.append(obj)
@@ -177,58 +158,35 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
                             added += 1
 
                     logger.info(f"[{chunk_label}] ({model}): extracted {added} criteria.")
-                    if added == 0:
-                        logger.warning(
-                            f"[{chunk_label}] 0 valid criteria from {model}.\n"
-                            f"Full output:\n{raw_output[:2000]}"
-                        )
-                        break  # Try next model
-
-                    return chunk_criteria  # Success — stop trying models
+                    # Success path
+                    return chunk_criteria
 
                 except RateLimitError:
+                    logger.warning(f"[{chunk_label}] {model} rate limited.")
                     if attempt < max_retries - 1:
-                        wait = retry_delay * (2 ** attempt)
-                        logger.warning(
-                            f"[{chunk_label}] Rate limit on {model} "
-                            f"(attempt {attempt+1}/{max_retries}). Sleeping {wait}s..."
-                        )
-                        time.sleep(wait)
+                        time.sleep(retry_delay * (2 ** attempt))
                     else:
-                        logger.error(
-                            f"[{chunk_label}] Rate limit exhausted for {model}. Trying next model..."
-                        )
-                        break  # Try next model
-
+                        break # Try next model
                 except Exception as e:
-                    logger.error(
-                        f"[{chunk_label}] Error with {model}: {type(e).__name__}: {e}",
-                        exc_info=True
-                    )
-                    break  # Try next model
+                    all_rate_limited = False # It was a different error
+                    logger.error(f"[{chunk_label}] Error with {model}: {e}")
+                    break
 
+        if all_rate_limited:
+            raise Exception("All Groq models are currently rate-limited. Please try again in a few minutes.")
+        
         return chunk_criteria
 
     if len(tender_text) <= SINGLE_CALL_LIMIT:
-        # ── Single-call path (most tenders) ──────────────────────────────────
-        logger.info(
-            f"Text is {len(tender_text)} chars — sending as single LLM call "
-            f"(limit: {SINGLE_CALL_LIMIT} chars)."
-        )
         all_criteria = _call_llm(tender_text, "FULL")
     else:
-        # ── Chunked path (very large tenders) ────────────────────────────────
-        chunk_size = 50_000  # Use large chunks to minimise number of API calls
+        # Use smaller chunks to respect TPM
+        chunk_size = 12_000 
         chunks = [tender_text[i:i + chunk_size] for i in range(0, len(tender_text), chunk_size)]
-        logger.info(
-            f"Text is {len(tender_text)} chars — splitting into {len(chunks)} chunks of {chunk_size} chars."
-        )
+        logger.info(f"Splitting into {len(chunks)} chunks of {chunk_size} chars.")
         for i, chunk in enumerate(chunks):
-            if i > 0:
-                logger.info("Sleeping 5s between chunks to respect rate limits...")
-                time.sleep(5)
-            chunk_results = _call_llm(chunk, f"CHUNK {i+1}/{len(chunks)}")
-            all_criteria.extend(chunk_results)
+            if i > 0: time.sleep(5)
+            all_criteria.extend(_call_llm(chunk, f"CHUNK {i+1}/{len(chunks)}"))
 
     logger.info(f"Total criteria extracted: {len(all_criteria)}")
     return all_criteria

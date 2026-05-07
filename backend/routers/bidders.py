@@ -26,6 +26,14 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
         criteria_res = db.table("criteria").select("*").eq("tender_id", tender_id).not_.is_("approved_at", "null").execute()
         criteria = criteria_res.data
 
+        if not criteria:
+            logger.error(f"No approved criteria found for tender {tender_id}. Cannot process bidder {bidder_id}.")
+            db.table("bidders").update({
+                "status": "failed",
+                "current_step": "Error: No approved criteria found for this tender. Please approve criteria first."
+            }).eq("id", bidder_id).execute()
+            return
+
         # 2. Extract text from all documents
         all_docs_text = []
         temp_files_to_cleanup = []
@@ -108,9 +116,9 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                         other_text.append(f"{doc['label']}\n{doc['text']}\n")
 
                 final_context = "\n".join(prioritized_text)
-                if len(final_context) < 20000:
+                if len(final_context) < 15000:
                     for text in other_text:
-                        if len(final_context) + len(text) < 25000:
+                        if len(final_context) + len(text) < 18000:
                             final_context += text
                         else:
                             break

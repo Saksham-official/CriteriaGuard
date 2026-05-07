@@ -24,8 +24,9 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
     from groq import RateLimitError
     import time
 
-    # Safety truncation for Groq free tier
-    documents_with_labels = documents_with_labels[:25000]
+    # Safety truncation for Groq free tier to stay within TPM limits
+    # 18k chars (~4.5k tokens) + 1.2k max_tokens < 6k TPM limit
+    documents_with_labels = documents_with_labels[:18000]
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
         criterion_json=json.dumps(criterion_dict, indent=2),
@@ -40,7 +41,7 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
                 logger.info(f"DocProbe: Calling {model} for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})")
                 response = client.chat.completions.create(
                     model=model,
-                    max_tokens=3000,  # Increased from 2000
+                    max_tokens=1200,  # Reduced from 3000 to stay under TPM limits
                     temperature=0,
                     timeout=httpx.Timeout(60.0, connect=10.0),
                     messages=[
