@@ -1,8 +1,11 @@
 import os
 import json
+import httpx
+import re
+import time
 from pydantic import ValidationError
 from typing import Dict, Any
-from groq import Groq
+from groq import Groq, RateLimitError
 
 from models.extraction import ExtractionSchema
 from prompts.value_extraction import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, RETRY_PROMPT_TEMPLATE
@@ -19,14 +22,9 @@ MODELS = [
 ]
 
 def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str) -> ExtractionSchema:
-    import httpx
-    import re
-    from groq import RateLimitError
-    import time
-
     # Safety truncation for Groq free tier to stay within TPM limits
-    # 18k chars (~4.5k tokens) + 1.2k max_tokens < 6k TPM limit
-    documents_with_labels = documents_with_labels[:18000]
+    # 15k chars (~4k tokens) + 1k max_tokens < 6k TPM limit
+    documents_with_labels = documents_with_labels[:15000]
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
         criterion_json=json.dumps(criterion_dict, indent=2),
@@ -41,7 +39,7 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
                 logger.info(f"DocProbe: Calling {model} for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})")
                 response = client.chat.completions.create(
                     model=model,
-                    max_tokens=1200,  # Reduced from 3000 to stay under TPM limits
+                    max_tokens=1000,  # Reduced to stay under TPM limits
                     temperature=0,
                     timeout=httpx.Timeout(60.0, connect=10.0),
                     messages=[
@@ -79,7 +77,7 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
                 if not isinstance(data, dict):
                     continue
                 
-                # Ensure criterion_id matches (LLM sometimes hallucinates it)
+                # Ensure criterion_id matches (LLM sometimes hallucinations it)
                 data["criterion_id"] = str(criterion_dict.get("id"))
 
                 return ExtractionSchema(**data)
