@@ -23,15 +23,15 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
             ]
         )
         
-        raw_output = response.choices[0].message.content
+        raw_output = response.choices[0].message.content.strip()
         
-        # Clean up any potential markdown formatting in the response
-        if raw_output.startswith("```json"):
-            raw_output = raw_output[7:-3]
-        elif raw_output.startswith("```"):
-            raw_output = raw_output[3:-3]
+        # More robust JSON cleaning
+        if "```json" in raw_output:
+            raw_output = raw_output.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_output:
+            raw_output = raw_output.split("```")[1].split("```")[0].strip()
             
-        data = json.loads(raw_output.strip())
+        data = json.loads(raw_output)
         
         # Validate with Pydantic
         return [CriterionSchema(**item) for item in data]
@@ -57,10 +57,10 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
         )
         
         retry_output = retry_response.choices[0].message.content.strip()
-        if retry_output.startswith("```json"):
-            retry_output = retry_output[7:-3]
-        elif retry_output.startswith("```"):
-            retry_output = retry_output[3:-3]
+        if "```json" in retry_output:
+            retry_output = retry_output.split("```json")[1].split("```")[0].strip()
+        elif "```" in retry_output:
+            retry_output = retry_output.split("```")[1].split("```")[0].strip()
             
-        retry_data = json.loads(retry_output.strip())
+        retry_data = json.loads(retry_output)
         return [CriterionSchema(**item) for item in retry_data]
