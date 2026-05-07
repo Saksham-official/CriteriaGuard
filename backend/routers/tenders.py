@@ -151,11 +151,11 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
         raise HTTPException(
             status_code=422,
             detail=(
-                "No eligibility criteria could be extracted. Possible causes: "
-                "(1) Groq API rate limit hit — wait 60s and retry, "
-                "(2) Document has no eligibility/qualification section, "
-                "(3) GROQ_API_KEY is invalid or quota exhausted. "
-                "Check server logs for the exact LLM response."
+                "No eligibility criteria could be extracted from this document. "
+                "Possible causes: (1) The document lacks a clear 'Eligibility' or 'Qualification' section, "
+                "(2) The PDF contains complex layouts/tables that the LLM could not parse, "
+                "(3) Groq API rate limits were exceeded. "
+                "Please try a different PDF or check if the document is machine-readable."
             )
         )
 

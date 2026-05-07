@@ -78,7 +78,9 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
 
     # llama-3.3-70b-versatile supports 128k tokens (~500k chars).
     # We cap at 100k chars to leave headroom for the prompt template itself.
-    SINGLE_CALL_LIMIT = 100_000
+    # Reduced from 100k to 50k. Large documents (>50k chars) are better handled 
+    # in chunks to avoid hitting the 4k/8k output token limit during extraction.
+    SINGLE_CALL_LIMIT = 50_000
 
     # Live Groq models as of May 2026 (verified via client.models.list()).
     # llama3-8b-8192, mixtral-8x7b-32768, gemma2-9b-it, llama-3.1-70b-versatile
@@ -86,9 +88,10 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
     # NOTE: llama-4-scout is FIRST because llama-3.3-70b is consistently
     # rate-limited on the free tier. Scout handles 67k-char docs perfectly.
     MODELS = [
-        "meta-llama/llama-4-scout-17b-16e-instruct", # Llama 4, large context, proven working
-        "llama-3.3-70b-versatile",                   # 128k context, try if scout fails
-        "llama-3.1-8b-instant",                      # Fast, lower TPM — last resort
+        "meta-llama/llama-4-scout-17b-16e-instruct", # Best balance of speed/context
+        "llama-3.3-70b-versatile",                   # High precision, high rate-limit pressure
+        "qwen/qwen3-32b",                            # Excellent fallback, high TPM
+        "llama-3.1-8b-instant",                      # Fast, lowest TPM — last resort
     ]
 
     all_criteria: List[CriterionSchema] = []
@@ -108,7 +111,7 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
                     logger.info(f"[{chunk_label}] Calling Groq model={model}, attempt={attempt+1}...")
                     response = client.chat.completions.create(
                         model=model,
-                        max_tokens=4096,
+                        max_tokens=8192,  # Increased from 4096 to prevent truncation
                         temperature=0,
                         timeout=httpx.Timeout(90.0, connect=10.0),
                         messages=[
@@ -133,18 +136,31 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
 
                     # Parse JSON
                     try:
+                        # First try: strict JSON parse
                         data = json.loads(raw_output)
-                    except json.JSONDecodeError as jde:
-                        logger.warning(f"[{chunk_label}] JSON parse failed ({jde}), trying regex...")
-                        match = re.search(r'\[.*\]', raw_output, re.DOTALL)
+                    except json.JSONDecodeError:
+                        # Second try: regex extraction
+                        logger.warning(f"[{chunk_label}] JSON parse failed, trying regex extraction...")
+                        # Look for the outermost [ ... ]
+                        match = re.search(r'\[\s*\{.*\}\s*\]', raw_output, re.DOTALL)
+                        if not match:
+                            # Try to find just a list of objects if the brackets are missing/mangled
+                            match = re.search(r'(\[\s*\{.*\}\s*\]|\{\s*".*\}\s*)', raw_output, re.DOTALL)
+                        
                         if match:
                             try:
-                                data = json.loads(match.group(0))
-                            except json.JSONDecodeError:
-                                logger.error(f"[{chunk_label}] Regex JSON extraction failed with {model}.")
+                                json_str = match.group(0)
+                                # Basic fix for truncated JSON: if it ends with a comma or open brace, try to close it
+                                if json_str.endswith(','):
+                                    json_str = json_str[:-1] + ']'
+                                if not json_str.endswith(']'):
+                                    json_str += ']'
+                                data = json.loads(json_str)
+                            except Exception:
+                                logger.error(f"[{chunk_label}] JSON recovery failed for {model}.")
                                 break  # Try next model
                         else:
-                            logger.error(f"[{chunk_label}] No JSON array in response with {model}.")
+                            logger.error(f"[{chunk_label}] No JSON found in response from {model}.")
                             break  # Try next model
 
                     if not isinstance(data, list):
