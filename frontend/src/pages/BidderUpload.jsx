@@ -78,6 +78,7 @@ const BidderUpload = () => {
             <input
               type="file"
               multiple
+              accept=".pdf,.docx,.jpg,.jpeg,.png,.tiff"
               onChange={handleFileChange}
               className="hidden"
               id="file-upload-multiple"
