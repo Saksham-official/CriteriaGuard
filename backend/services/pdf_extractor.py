@@ -2,6 +2,7 @@ import pdfplumber
 import fitz  # PyMuPDF
 from typing import List
 import os
+from services.ocr import extract_text_from_image
 
 class DocPage:
     def __init__(self, page_number: int, text: str):
@@ -11,24 +12,31 @@ class DocPage:
 def extract_text_from_pdf(file_path: str) -> List[DocPage]:
     pages = []
     try:
-        # We primarily use pdfplumber for reliable text extraction
-        with pdfplumber.open(file_path) as pdf:
-            for i, page in enumerate(pdf.pages):
-                text = page.extract_text()
-                if text:
-                    pages.append(DocPage(page_number=i + 1, text=text))
+        doc = fitz.open(file_path)
+        for i, page in enumerate(doc):
+            text = page.get_text().strip()
+            
+            # If text is missing or suspiciously short (scanned PDF), use OCR
+            if not text or len(text) < 50:
+                print(f"Page {i+1} appears to be a scan. Triggering OCR...")
+                # Render page to image
+                pix = page.get_pixmap()
+                temp_image = f"temp_page_{i}.png"
+                pix.save(temp_image)
+                
+                ocr_res = extract_text_from_image(temp_image)
+                if ocr_res.text:
+                    text = ocr_res.text
+                
+                # Cleanup temp image
+                if os.path.exists(temp_image):
+                    os.remove(temp_image)
+            
+            if text:
+                pages.append(DocPage(page_number=i + 1, text=text))
+        doc.close()
     except Exception as e:
-        print(f"pdfplumber extraction failed: {e}")
-        # Fallback to PyMuPDF
-        try:
-            doc = fitz.open(file_path)
-            for i, page in enumerate(doc):
-                text = page.get_text()
-                if text:
-                    pages.append(DocPage(page_number=i + 1, text=text))
-            doc.close()
-        except Exception as e2:
-            print(f"PyMuPDF fallback failed: {e2}")
+        print(f"Extraction failed: {e}")
     
     return pages
 

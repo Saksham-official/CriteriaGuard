@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from db.database import supabase
 
 def log_audit_action(action_type: str, actor: str, target_type: str, target_id: str, result: str, metadata: dict):
@@ -12,7 +12,7 @@ def log_audit_action(action_type: str, actor: str, target_type: str, target_id: 
     if last_log_res.data and len(last_log_res.data) > 0:
         previous_hash = last_log_res.data[0]["entry_hash"]
         
-    timestamp = datetime.utcnow().isoformat(timespec='seconds')
+    timestamp = datetime.now(timezone.utc).isoformat(timespec='seconds')
     
     # Canonical JSON for deterministic hashing
     payload = {
