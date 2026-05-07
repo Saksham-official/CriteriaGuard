@@ -5,62 +5,62 @@ from typing import List
 from groq import Groq
 from models.criterion import CriterionSchema
 from prompts.criteria_extraction import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, RETRY_PROMPT_TEMPLATE
+from utils.logger import logger
 
 # Ensure groq client is initialized
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
-    user_prompt = USER_PROMPT_TEMPLATE.format(tender_text=tender_text)
+    # Chunking strategy to avoid Groq's 413 (Request too large) error.
+    # Llama-3.3-70b-versatile has a limit of ~12k tokens on the free tier.
+    # We use ~6000 tokens (approx 24000 characters) per chunk to be safe.
+    chunk_size = 24000 
+    chunks = [tender_text[i:i + chunk_size] for i in range(0, len(tender_text), chunk_size)]
     
-    try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            max_tokens=4000,
-            temperature=0,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
+    all_criteria = []
+    seen_codes = set()
+
+    for i, chunk in enumerate(chunks):
+        logger.info(f"Processing tender chunk {i+1}/{len(chunks)}...")
+        user_prompt = USER_PROMPT_TEMPLATE.format(tender_text=chunk)
         
-        raw_output = response.choices[0].message.content.strip()
-        
-        # More robust JSON cleaning
-        if "```json" in raw_output:
-            raw_output = raw_output.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw_output:
-            raw_output = raw_output.split("```")[1].split("```")[0].strip()
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                max_tokens=4000,
+                temperature=0,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ]
+            )
             
-        data = json.loads(raw_output)
-        
-        # Validate with Pydantic
-        return [CriterionSchema(**item) for item in data]
-        
-    except (ValidationError, json.JSONDecodeError) as e:
-        # Implement retry logic
-        print(f"Validation failed. Retrying... Error: {e}")
-        retry_prompt = RETRY_PROMPT_TEMPLATE.format(
-            validation_error=str(e),
-            schema_json=CriterionSchema.model_json_schema()
-        )
-        
-        retry_response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            max_tokens=4000,
-            temperature=0,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-                {"role": "assistant", "content": raw_output if 'raw_output' in locals() else "{}"},
-                {"role": "user", "content": retry_prompt}
-            ]
-        )
-        
-        retry_output = retry_response.choices[0].message.content.strip()
-        if "```json" in retry_output:
-            retry_output = retry_output.split("```json")[1].split("```")[0].strip()
-        elif "```" in retry_output:
-            retry_output = retry_output.split("```")[1].split("```")[0].strip()
+            raw_output = response.choices[0].message.content.strip()
             
-        retry_data = json.loads(retry_output)
-        return [CriterionSchema(**item) for item in retry_data]
+            # Robust JSON cleaning
+            if "```json" in raw_output:
+                raw_output = raw_output.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw_output:
+                raw_output = raw_output.split("```")[1].split("```")[0].strip()
+            
+            if not raw_output:
+                continue
+                
+            data = json.loads(raw_output)
+            
+            for item in data:
+                try:
+                    obj = CriterionSchema(**item)
+                    # Deduplicate if the same criterion appears in overlapping or multiple chunks
+                    if obj.id not in seen_codes:
+                        all_criteria.append(obj)
+                        seen_codes.add(obj.id)
+                except ValidationError:
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Error processing chunk {i+1}: {e}", exc_info=True)
+            # If one chunk fails, we continue to others to extract as much as possible
+            continue
+
+    return all_criteria

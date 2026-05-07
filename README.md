@@ -81,7 +81,7 @@ graph TD
 ## 💻 Technology Stack
 
 - **Backend**: FastAPI (Python 3.11), Pydantic v2 (Schema Validation).
-- **Frontend**: React 18 (Vite), Glassmorphism UI, High-Performance WebGL (Aurora) animations.
+- **CriteriaGuard Frontend**: React 18 (Vite), Glassmorphism UI, High-Performance WebGL (Aurora) animations.
 - **LLM Layer**: Llama 3.3 70B (Groq) for high-speed, accurate extraction.
 - **OCR Engine**: Tesseract & Cloud Vision Ensemble.
 - **Database**: PostgreSQL (Supabase) with SHA-256 Chaining.
@@ -115,7 +115,7 @@ graph TD
    python main.py
    ```
 
-3. **Frontend Setup**
+3. **CriteriaGuard Frontend Setup**
    ```bash
    cd frontend
    npm install

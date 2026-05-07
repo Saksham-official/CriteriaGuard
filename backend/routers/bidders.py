@@ -12,6 +12,7 @@ from services.ocr import extract_text_from_image
 from engines.doc_probe import extract_value_for_criterion
 from engines.verdict_core import compute_verdict
 from services.audit import log_audit_action
+from utils.logger import logger
 
 router = APIRouter(prefix="/api/bidders", tags=["bidders"])
 
@@ -31,7 +32,7 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
         for fpath, fname in zip(file_paths, file_names):
             ext = os.path.splitext(fpath)[1].lower()
             if ext not in ['.pdf', '.docx', '.jpg', '.jpeg', '.png', '.tiff']:
-                print(f"Skipping unsupported file: {fname}")
+                logger.warning(f"Skipping unsupported file: {fname}")
                 continue
                 
             try:
@@ -63,7 +64,7 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                             "filename": fname
                         })
             except Exception as e:
-                print(f"Failed to parse document {fname}: {e}")
+                logger.error(f"Failed to parse document {fname}: {e}", exc_info=True)
                 continue
         
         # 3. For each criterion, run DocProbe
@@ -87,7 +88,7 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                 cat = criterion.get("category", "").lower()
                 relevant_keywords = keywords.get(cat, [])
                 
-                # Build context window (limit to ~40k characters for safety)
+                # Build context window (limit to ~20k characters for safety)
                 # In a production app, we would use vector search (RAG) here.
                 prioritized_text = []
                 other_text = []
@@ -101,9 +102,9 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                 
                 # Take all prioritized, then fill with others up to limit
                 final_context = "\n".join(prioritized_text)
-                if len(final_context) < 40000:
+                if len(final_context) < 20000:
                     for text in other_text:
-                        if len(final_context) + len(text) < 50000:
+                        if len(final_context) + len(text) < 25000:
                             final_context += text
                         else:
                             break
@@ -141,13 +142,13 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                         "review_sub_reason": verdict.get("review_sub_reason")
                     }).execute()
                 else:
-                    print(f"Failed to save extraction for criterion {criterion['id']}")
+                    logger.error(f"Failed to save extraction for criterion {criterion['id']}")
                 
                 # Update progress
                 supabase.table("bidders").update({"processed_count": i + 1}).eq("id", bidder_id).execute()
                 
             except Exception as e:
-                print(f"Error extracting for criterion {criterion['id']}: {e}")
+                logger.error(f"Error extracting for criterion {criterion['id']}: {e}", exc_info=True)
                 
         # Cleanup temp files and original uploads
         for f in temp_files_to_cleanup:
@@ -165,7 +166,7 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
         }).eq("id", bidder_id).execute()
 
     except Exception as global_e:
-        print(f"Global processing failure: {global_e}")
+        logger.error(f"Global processing failure: {global_e}", exc_info=True)
         supabase.table("bidders").update({
             "status": "failed",
             "current_step": f"Error: {str(global_e)}"

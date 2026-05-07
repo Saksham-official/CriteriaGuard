@@ -6,10 +6,14 @@ from groq import Groq
 
 from models.extraction import ExtractionSchema
 from prompts.value_extraction import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, RETRY_PROMPT_TEMPLATE
+from utils.logger import logger
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str) -> ExtractionSchema:
+    # Safety truncation for Groq free tier (approx 25k chars ~ 6k tokens)
+    documents_with_labels = documents_with_labels[:25000]
+
     user_prompt = USER_PROMPT_TEMPLATE.format(
         criterion_json=json.dumps(criterion_dict, indent=2),
         documents_with_labels=documents_with_labels,
@@ -40,7 +44,7 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
         return ExtractionSchema(**data)
         
     except (ValidationError, json.JSONDecodeError) as e:
-        print(f"DocProbe Validation failed. Retrying... Error: {e}")
+        logger.error(f"DocProbe Validation failed. Retrying... Error: {e}", exc_info=True)
         retry_prompt = RETRY_PROMPT_TEMPLATE.format(
             validation_error=str(e),
             schema_json=ExtractionSchema.model_json_schema()
