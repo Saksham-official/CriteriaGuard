@@ -60,14 +60,17 @@ const BidderUpload = () => {
     setMessage('');
 
     try {
-      await axios.post(`${API_BASE_URL}/api/bidders/upload`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/bidders/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      setMessage(`Documents for ${bidderName} are now being processed!`);
-      setBidderName('');
-      setFiles([]);
+      const bidderId = response.data.bidder_id;
+      
+      // Navigate to the live WebSocket streaming processing viewport
+      navigate(`/bidder-processing/${tenderId}/${bidderId}`, {
+        state: { bidderName: bidderName }
+      });
     } catch (err) {
       setError(err.response?.data?.detail || 'An error occurred during upload.');
     } finally {

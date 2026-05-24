@@ -21,7 +21,7 @@ MODELS = [
     "llama-3.1-8b-instant",                      
 ]
 
-def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str) -> ExtractionSchema:
+def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str, on_token=None) -> ExtractionSchema:
     # Safety truncation for Groq free tier to stay within TPM limits
     # 15k chars (~4k tokens) + 1k max_tokens < 6k TPM limit
     documents_with_labels = documents_with_labels[:15000]
@@ -36,20 +36,43 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
         max_retries = 2
         for attempt in range(max_retries):
             try:
-                logger.info(f"DocProbe: Calling {model} for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})")
-                response = client.chat.completions.create(
-                    model=model,
-                    max_tokens=1000,  # Reduced to stay under TPM limits
-                    temperature=0,
-                    timeout=httpx.Timeout(60.0, connect=10.0),
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": user_prompt}
-                    ]
-                )
-                
-                content = response.choices[0].message.content
-                raw_output = content.strip() if content else ""
+                if on_token:
+                    logger.info(f"DocProbe: Calling {model} in streaming mode for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})")
+                    response_stream = client.chat.completions.create(
+                        model=model,
+                        max_tokens=1000,  # Reduced to stay under TPM limits
+                        temperature=0,
+                        timeout=httpx.Timeout(60.0, connect=10.0),
+                        messages=[
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        stream=True
+                    )
+                    
+                    full_content = ""
+                    for chunk in response_stream:
+                        if chunk.choices and chunk.choices[0].delta.content:
+                            token = chunk.choices[0].delta.content
+                            full_content += token
+                            on_token(token)
+                    
+                    raw_output = full_content.strip()
+                else:
+                    logger.info(f"DocProbe: Calling {model} for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})")
+                    response = client.chat.completions.create(
+                        model=model,
+                        max_tokens=1000,  # Reduced to stay under TPM limits
+                        temperature=0,
+                        timeout=httpx.Timeout(60.0, connect=10.0),
+                        messages=[
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": user_prompt}
+                        ]
+                    )
+                    
+                    content = response.choices[0].message.content
+                    raw_output = content.strip() if content else ""
                 
                 if not raw_output:
                     continue
