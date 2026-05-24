@@ -43,7 +43,6 @@ async def lifespan(app: FastAPI):
 
     if missing:
         logger.critical(f"Startup failed. Missing environment variables: {', '.join(missing)}")
-        import asyncio
         await asyncio.sleep(2)
         sys.exit(1)
 
