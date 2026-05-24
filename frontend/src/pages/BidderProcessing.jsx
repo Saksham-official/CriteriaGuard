@@ -198,7 +198,14 @@ const BidderProcessing = () => {
       {/* Header Workspace */}
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md px-8 py-5 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-blue-600/10 border border-blue-500/30 rounded-xl flex items-center justify-center">
+          <button 
+            onClick={() => navigate(`/dashboard/${tenderId}`)}
+            className="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-slate-300 hover:text-white rounded-xl flex items-center justify-center transition shadow-sm mr-1"
+            title="Back to Dashboard"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <div className="w-10 h-10 bg-blue-600/10 border border-blue-500/30 rounded-xl flex items-center justify-center shrink-0">
             <svg className="w-5 h-5 text-blue-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v4m0 8v4m4-12h4m-12 4H4m15.364-4.364l-2.828 2.828m-8.485 8.485L4.364 19.636M19.636 19.636l-2.828-2.828m-8.485-8.485L4.364 4.364"></path></svg>
           </div>
           <div>
@@ -236,9 +243,18 @@ const BidderProcessing = () => {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-red-500"></span>
-              <span className="text-[10px] text-red-400 font-black tracking-widest font-mono uppercase">Analysis Failed</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-red-500"></span>
+                <span className="text-[10px] text-red-400 font-black tracking-widest font-mono uppercase">Analysis Failed</span>
+              </div>
+              <button
+                onClick={() => navigate(`/dashboard/${tenderId}`)}
+                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold rounded-xl text-xs transition border border-slate-700 shadow-lg flex items-center gap-2"
+              >
+                <span>Back to Dashboard</span>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+              </button>
             </div>
           )}
         </div>

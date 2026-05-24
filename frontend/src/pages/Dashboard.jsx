@@ -1,14 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 
 import API_BASE_URL from '../api/config';
 
 const Dashboard = () => {
   const { tenderId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [data, setData] = useState({ bidders: [], verdicts: [], extractions: [] });
   const [loading, setLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState(location.state?.successMessage || '');
+
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      setToastMessage(location.state.successMessage);
+      // Clear location state to prevent toast on reload
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => {
+        setToastMessage('');
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -38,6 +57,16 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
+        {toastMessage && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl mb-8 flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top duration-300">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black">✓</div>
+              <span className="text-sm font-bold">{toastMessage}</span>
+            </div>
+            <button onClick={() => setToastMessage('')} className="text-emerald-400 hover:text-emerald-600 font-black text-xl px-2">×</button>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
           <div>
             <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Evaluation Dashboard</h1>
