@@ -21,9 +21,9 @@ The Hackathon Feature: Integrate an on-the-fly translation API (like Bhashini, w
 5. Multi-Agent "Devil's Advocate" for Borderline Cases
 Your README mentions a "Human-in-the-Loop" fallback for ambiguous cases (e.g., a turnover of ₹4.9Cr against a ₹5Cr requirement).
 
-The Hackathon Feature: Before sending it to a human, trigger a multi-agent debate. Spin up two distinct LLM calls: Agent A argues strictly why the bid fails the criteria, while Agent B argues why it might be acceptable based on standard procurement tolerances or alternative clauses found in the document. Present this synthesized, two-sided debate to the human officer to drastically speed up their final decision.
+6. The Hackathon Feature: Before sending it to a human, trigger a multi-agent debate. Spin up two distinct LLM calls: Agent A argues strictly why the bid fails the criteria, while Agent B argues why it might be acceptable based on standard procurement tolerances or alternative clauses found in the document. Present this synthesized, two-sided debate to the human officer to drastically speed up their final decision.
 
-Architectural Improvements for Rapid Iteration
+7. Architectural Improvements for Rapid Iteration
 Decouple Prompts for "Vibe Coding": Ensure that your system prompts (currently in PROMPT_ENGINEERING.md) are loaded dynamically by FastAPI as separate configuration files or database entries. This allows you to rapidly iterate, tweak, and test prompts using AI coding assistants without needing to restart the backend container every time.
 
-Cryptographic Verification Widget: You mentioned SHA-256 chained audit logs in the Supabase database. Make this tangible for the judges by adding a "Verify Integrity" button on the frontend. Allow a judge to drag and drop an older generated evaluation report into the browser; the frontend hashes it and cross-checks it against the database to visually prove no database tampering has occurred.
+8. Cryptographic Verification Widget: You mentioned SHA-256 chained audit logs in the Supabase database. Make this tangible for the judges by adding a "Verify Integrity" button on the frontend. Allow a judge to drag and drop an older generated evaluation report into the browser; the frontend hashes it and cross-checks it against the database to visually prove no database tampering has occurred.
