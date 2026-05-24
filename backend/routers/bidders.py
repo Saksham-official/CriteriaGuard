@@ -11,6 +11,7 @@ from services.image_preprocessor import preprocess_image
 from services.ocr import extract_text_from_image
 from engines.doc_probe import extract_value_for_criterion
 from engines.verdict_core import compute_verdict
+from engines.security_shield import scan_document_for_security
 from services.audit import log_audit_action
 from utils.logger import logger
 from utils.websocket_manager import manager
@@ -53,8 +54,19 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
         manager.broadcast(bidder_id, {
             "type": "status_update",
             "status": "processing",
-            "current_step": "Extracting text from bidder documents..."
+            "current_step": "Running security sanitization on documents..."
         })
+
+        # Define aggregate security report
+        security_report = {
+            "is_safe": True,
+            "tampering_detected": False,
+            "injection_detected": False,
+            "risk_level": "low",
+            "tampering_details": [],
+            "injection_details": [],
+            "scanned_files": []
+        }
 
         for fpath, fname in zip(file_paths, file_names):
             ext = os.path.splitext(fpath)[1].lower()
@@ -62,10 +74,71 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                 logger.warning(f"Skipping unsupported file: {fname}")
                 continue
 
+            # Run Security Scan first
+            try:
+                manager.broadcast(bidder_id, {
+                    "type": "status_update",
+                    "status": "processing",
+                    "current_step": f"Scanning document security: {fname}..."
+                })
+                
+                scan_res = scan_document_for_security(fpath, fname)
+                security_report["scanned_files"].append({
+                    "filename": fname,
+                    "report": scan_res
+                })
+                
+                if scan_res["tampering_detected"]:
+                    security_report["tampering_detected"] = True
+                    security_report["tampering_details"].extend(scan_res["tampering_details"])
+                    if security_report["risk_level"] != "critical":
+                        security_report["risk_level"] = "medium"
+                        
+                if scan_res["injection_detected"]:
+                    security_report["injection_detected"] = True
+                    security_report["injection_details"].extend(scan_res["injection_details"])
+                    security_report["risk_level"] = "critical"
+                    security_report["is_safe"] = False
+
+                # Broadcast the live security scan result for this document
+                manager.broadcast(bidder_id, {
+                    "type": "security_scan",
+                    "filename": fname,
+                    "status": "failed" if scan_res["injection_detected"] else ("warning" if scan_res["tampering_detected"] else "passed"),
+                    "report": scan_res
+                })
+
+                # Handle critical prompt injection block immediately
+                if scan_res["injection_detected"]:
+                    logger.critical(f"SecurityShield: CRITICAL prompt injection detected in {fname}! Halting pipeline.")
+                    db.table("bidders").update({
+                        "status": "failed",
+                        "current_step": "CRITICAL: Prompt Injection Blocked.",
+                        "security_report": security_report
+                    }).eq("id", bidder_id).execute()
+                    
+                    manager.broadcast(bidder_id, {
+                        "type": "status_update",
+                        "status": "failed",
+                        "current_step": "CRITICAL: Prompt Injection Blocked."
+                    })
+                    # Cleanup temp files and original uploads
+                    for f in temp_files_to_cleanup:
+                         if os.path.exists(f):
+                             os.remove(f)
+                    for f in file_paths:
+                         if os.path.exists(f):
+                             os.remove(f)
+                    return
+
+            except Exception as sec_e:
+                logger.error(f"SecurityShield: Scan failed on {fname}: {sec_e}", exc_info=True)
+
+            # Proceed to text extraction if document is deemed safe
             manager.broadcast(bidder_id, {
                 "type": "status_update",
                 "status": "processing",
-                "current_step": f"Parsing {fname}..."
+                "current_step": f"Extracting text from {fname}..."
             })
 
             try:
@@ -196,7 +269,15 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                         extraction_id = str(extraction_dict["id"])
 
                         # 4. Compute Verdict
-                        verdict = compute_verdict(dict(criterion), dict(extraction_dict))
+                        source_doc_name = extraction_dict.get("source_document")
+                        is_tampered_source = False
+                        if source_doc_name:
+                            for sf in security_report.get("scanned_files", []):
+                                if sf["filename"] == source_doc_name:
+                                    is_tampered_source = sf["report"].get("tampering_detected", False)
+                                    break
+
+                        verdict = compute_verdict(dict(criterion), dict(extraction_dict), is_tampered_source=is_tampered_source)
 
                         db.table("verdicts").insert({
                             "criterion_id": criterion["id"],
@@ -244,7 +325,8 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
         # Update bidder status
         db.table("bidders").update({
             "status": "complete",
-            "current_step": "Processing finished"
+            "current_step": "Processing finished",
+            "security_report": security_report
         }).eq("id", bidder_id).execute()
 
         # Broadcast completion
