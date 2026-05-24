@@ -111,11 +111,18 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                 # Handle critical prompt injection block immediately
                 if scan_res["injection_detected"]:
                     logger.critical(f"SecurityShield: CRITICAL prompt injection detected in {fname}! Halting pipeline.")
-                    db.table("bidders").update({
-                        "status": "failed",
-                        "current_step": "CRITICAL: Prompt Injection Blocked.",
-                        "security_report": security_report
-                    }).eq("id", bidder_id).execute()
+                    try:
+                        db.table("bidders").update({
+                            "status": "failed",
+                            "current_step": "CRITICAL: Prompt Injection Blocked.",
+                            "security_report": security_report
+                        }).eq("id", bidder_id).execute()
+                    except Exception as db_err:
+                        logger.warning(f"Failed to update security_report column (schema cache stale?): {db_err}")
+                        db.table("bidders").update({
+                            "status": "failed",
+                            "current_step": "CRITICAL: Prompt Injection Blocked."
+                        }).eq("id", bidder_id).execute()
                     
                     manager.broadcast(bidder_id, {
                         "type": "status_update",
@@ -323,11 +330,18 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
             del manager.extracted_text_cache[bidder_id]
 
         # Update bidder status
-        db.table("bidders").update({
-            "status": "complete",
-            "current_step": "Processing finished",
-            "security_report": security_report
-        }).eq("id", bidder_id).execute()
+        try:
+            db.table("bidders").update({
+                "status": "complete",
+                "current_step": "Processing finished",
+                "security_report": security_report
+            }).eq("id", bidder_id).execute()
+        except Exception as db_err:
+            logger.warning(f"Failed to update security_report column (schema cache stale?): {db_err}")
+            db.table("bidders").update({
+                "status": "complete",
+                "current_step": "Processing finished"
+            }).eq("id", bidder_id).execute()
 
         # Broadcast completion
         manager.broadcast(bidder_id, {
