@@ -11,8 +11,10 @@ from services.image_preprocessor import preprocess_image
 from services.ocr import extract_text_from_image
 from engines.doc_probe import extract_value_for_criterion
 from engines.verdict_core import compute_verdict
+from engines.security_shield import scan_document_for_security
 from services.audit import log_audit_action
 from utils.logger import logger
+from utils.websocket_manager import manager
 
 router = APIRouter(prefix="/api/bidders", tags=["bidders"])
 
@@ -22,6 +24,12 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[str], file_names: List[str]):
     try:
         db = get_db()
+        manager.broadcast(bidder_id, {
+            "type": "status_update",
+            "status": "processing",
+            "current_step": "Fetching approved criteria..."
+        })
+
         # 1. Fetch APPROVED criteria for this tender
         criteria_res = db.table("criteria").select("*").eq("tender_id", tender_id).not_.is_("approved_at", "null").execute()
         criteria = criteria_res.data
@@ -32,17 +40,113 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                 "status": "failed",
                 "current_step": "Error: No approved criteria found for this tender. Please approve criteria first."
             }).eq("id", bidder_id).execute()
+            manager.broadcast(bidder_id, {
+                "type": "status_update",
+                "status": "failed",
+                "current_step": "Error: No approved criteria found."
+            })
             return
 
         # 2. Extract text from all documents
         all_docs_text = []
         temp_files_to_cleanup = []
 
+        manager.broadcast(bidder_id, {
+            "type": "status_update",
+            "status": "processing",
+            "current_step": "Running security sanitization on documents..."
+        })
+
+        # Define aggregate security report
+        security_report = {
+            "is_safe": True,
+            "tampering_detected": False,
+            "injection_detected": False,
+            "risk_level": "low",
+            "tampering_details": [],
+            "injection_details": [],
+            "scanned_files": []
+        }
+
         for fpath, fname in zip(file_paths, file_names):
             ext = os.path.splitext(fpath)[1].lower()
             if ext not in ['.pdf', '.docx', '.jpg', '.jpeg', '.png', '.tiff']:
                 logger.warning(f"Skipping unsupported file: {fname}")
                 continue
+
+            # Run Security Scan first
+            try:
+                manager.broadcast(bidder_id, {
+                    "type": "status_update",
+                    "status": "processing",
+                    "current_step": f"Scanning document security: {fname}..."
+                })
+                
+                scan_res = scan_document_for_security(fpath, fname)
+                security_report["scanned_files"].append({
+                    "filename": fname,
+                    "report": scan_res
+                })
+                
+                if scan_res["tampering_detected"]:
+                    security_report["tampering_detected"] = True
+                    security_report["tampering_details"].extend(scan_res["tampering_details"])
+                    if security_report["risk_level"] != "critical":
+                        security_report["risk_level"] = "medium"
+                        
+                if scan_res["injection_detected"]:
+                    security_report["injection_detected"] = True
+                    security_report["injection_details"].extend(scan_res["injection_details"])
+                    security_report["risk_level"] = "critical"
+                    security_report["is_safe"] = False
+
+                # Broadcast the live security scan result for this document
+                manager.broadcast(bidder_id, {
+                    "type": "security_scan",
+                    "filename": fname,
+                    "status": "failed" if scan_res["injection_detected"] else ("warning" if scan_res["tampering_detected"] else "passed"),
+                    "report": scan_res
+                })
+
+                # Handle critical prompt injection block immediately
+                if scan_res["injection_detected"]:
+                    logger.critical(f"SecurityShield: CRITICAL prompt injection detected in {fname}! Halting pipeline.")
+                    try:
+                        db.table("bidders").update({
+                            "status": "failed",
+                            "current_step": "CRITICAL: Prompt Injection Blocked.",
+                            "security_report": security_report
+                        }).eq("id", bidder_id).execute()
+                    except Exception as db_err:
+                        logger.warning(f"Failed to update security_report column (schema cache stale?): {db_err}")
+                        db.table("bidders").update({
+                            "status": "failed",
+                            "current_step": "CRITICAL: Prompt Injection Blocked."
+                        }).eq("id", bidder_id).execute()
+                    
+                    manager.broadcast(bidder_id, {
+                        "type": "status_update",
+                        "status": "failed",
+                        "current_step": "CRITICAL: Prompt Injection Blocked."
+                    })
+                    # Cleanup temp files and original uploads
+                    for f in temp_files_to_cleanup:
+                         if os.path.exists(f):
+                             os.remove(f)
+                    for f in file_paths:
+                         if os.path.exists(f):
+                             os.remove(f)
+                    return
+
+            except Exception as sec_e:
+                logger.error(f"SecurityShield: Scan failed on {fname}: {sec_e}", exc_info=True)
+
+            # Proceed to text extraction if document is deemed safe
+            manager.broadcast(bidder_id, {
+                "type": "status_update",
+                "status": "processing",
+                "current_step": f"Extracting text from {fname}..."
+            })
 
             try:
                 if ext == '.pdf':
@@ -82,7 +186,19 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                  "status": "failed",
                  "current_step": "Error: Could not extract text from any uploaded documents."
              }).eq("id", bidder_id).execute()
+             manager.broadcast(bidder_id, {
+                 "type": "status_update",
+                 "status": "failed",
+                 "current_step": "Error: Text extraction failed."
+             })
              return
+
+        # Cache extracted text and broadcast to active WebSocket connections
+        manager.extracted_text_cache[bidder_id] = all_docs_text
+        manager.broadcast(bidder_id, {
+            "type": "documents_extracted",
+            "documents": all_docs_text
+        })
 
         # 3. For each criterion, run DocProbe
         total_criteria = len(criteria)
@@ -93,6 +209,12 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
             try:
                 current_label = criterion.get('category', 'Criterion')
                 db.table("bidders").update({"current_step": f"Analyzing {current_label}..."}).eq("id", bidder_id).execute()
+
+                # Broadcast criterion start event
+                manager.broadcast(bidder_id, {
+                    "type": "criterion_start",
+                    "criterion": criterion
+                })
 
                 # Context Filtering Logic
                 keywords = {
@@ -123,7 +245,15 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                         else:
                             break
 
-                extraction = extract_value_for_criterion(dict(criterion), final_context)
+                # Stream callback for Groq delta extraction
+                def handle_token(token: str):
+                    manager.broadcast(bidder_id, {
+                        "type": "llm_token",
+                        "criterion_id": criterion["id"],
+                        "token": token
+                    })
+
+                extraction = extract_value_for_criterion(dict(criterion), final_context, on_token=handle_token)
 
                 # Save extraction to DB
                 try:
@@ -146,7 +276,15 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                         extraction_id = str(extraction_dict["id"])
 
                         # 4. Compute Verdict
-                        verdict = compute_verdict(dict(criterion), dict(extraction_dict))
+                        source_doc_name = extraction_dict.get("source_document")
+                        is_tampered_source = False
+                        if source_doc_name:
+                            for sf in security_report.get("scanned_files", []):
+                                if sf["filename"] == source_doc_name:
+                                    is_tampered_source = sf["report"].get("tampering_detected", False)
+                                    break
+
+                        verdict = compute_verdict(dict(criterion), dict(extraction_dict), is_tampered_source=is_tampered_source)
 
                         db.table("verdicts").insert({
                             "criterion_id": criterion["id"],
@@ -156,6 +294,14 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
                             "reason": verdict["reason"],
                             "review_sub_reason": verdict.get("review_sub_reason")
                         }).execute()
+
+                        # Broadcast final extraction and verdict
+                        manager.broadcast(bidder_id, {
+                            "type": "extraction_result",
+                            "criterion_id": criterion["id"],
+                            "extraction": extraction_dict,
+                            "verdict": verdict
+                        })
                     else:
                         logger.error(f"Failed to save extraction for criterion {criterion['id']}")
                 except Exception as db_err:
@@ -179,19 +325,45 @@ def process_bidder_documents(tender_id: str, bidder_id: str, file_paths: List[st
             if os.path.exists(f):
                 os.remove(f)
 
+        # Cleanup cached documents
+        if bidder_id in manager.extracted_text_cache:
+            del manager.extracted_text_cache[bidder_id]
+
         # Update bidder status
-        db.table("bidders").update({
+        try:
+            db.table("bidders").update({
+                "status": "complete",
+                "current_step": "Processing finished",
+                "security_report": security_report
+            }).eq("id", bidder_id).execute()
+        except Exception as db_err:
+            logger.warning(f"Failed to update security_report column (schema cache stale?): {db_err}")
+            db.table("bidders").update({
+                "status": "complete",
+                "current_step": "Processing finished"
+            }).eq("id", bidder_id).execute()
+
+        # Broadcast completion
+        manager.broadcast(bidder_id, {
+            "type": "status_update",
             "status": "complete",
             "current_step": "Processing finished"
-        }).eq("id", bidder_id).execute()
+        })
 
     except Exception as global_e:
         logger.error(f"Global processing failure: {global_e}", exc_info=True)
+        if bidder_id in manager.extracted_text_cache:
+            del manager.extracted_text_cache[bidder_id]
         try:
             get_db().table("bidders").update({
                 "status": "failed",
                 "current_step": f"Error: {str(global_e)}"
             }).eq("id", bidder_id).execute()
+            manager.broadcast(bidder_id, {
+                "type": "status_update",
+                "status": "failed",
+                "current_step": f"Error: {str(global_e)}"
+            })
         except Exception:
             pass
 

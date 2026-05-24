@@ -41,6 +41,75 @@ const BidderDetail = () => {
         <h1 className="text-4xl font-extrabold text-gray-800 mb-2">{data.bidder.name}</h1>
         <p className="text-gray-500 mb-8">Detailed Criteria Evaluation Report</p>
 
+        {/* Glowing Security Shield Widget */}
+        {(() => {
+          const report = data.bidder.security_report;
+          if (!report) return null;
+
+          const isSafe = report.is_safe;
+          const riskLevel = report.risk_level;
+
+          let cardClass = "bg-green-50 border-green-200 text-green-800 shadow-green-100/50";
+          let iconColor = "text-green-600";
+          let riskLabel = "Low Risk Profile";
+          let alertTitle = "Sanitized & Verified";
+          let alertDesc = "This bidder's evidence submissions have been analyzed for EXIF metadata fabrication, layouter obfuscation, and command injection payloads. All scans passed.";
+
+          if (riskLevel === 'medium') {
+            cardClass = "bg-amber-50 border-amber-200 text-amber-900 shadow-amber-100/50";
+            iconColor = "text-amber-600";
+            riskLabel = "Suspicious Metadata Warnings";
+            alertTitle = "EXIF/Metadata Anomalies Flagged";
+            alertDesc = "Warning: Mismatched file creation properties or editing software footprints (e.g. Canva, Illustrator, Photoshop) were detected on one or more documents. Affected evidence has been forced to human review.";
+          } else if (riskLevel === 'critical') {
+            cardClass = "bg-red-50 border-red-200 text-red-900 shadow-red-100/50";
+            iconColor = "text-red-600";
+            riskLabel = "Critical Security Override Blocked";
+            alertTitle = "Prompt Injection Prevented";
+            alertDesc = "Critical Breach Stopped: Hidden micro-text layers or adversarial override commands were intercepted within these submissions. Pipeline execution was locked to protect integrity.";
+          }
+
+          return (
+            <div className={`p-6 border rounded-2xl mb-8 flex flex-col md:flex-row gap-5 items-start shadow-xl border-l-4 ${
+              riskLevel === 'critical' ? 'border-l-red-500' : (riskLevel === 'medium' ? 'border-l-amber-500' : 'border-l-green-500')
+            } ${cardClass}`}>
+              <div className={`w-12 h-12 rounded-xl bg-white border border-slate-100 flex items-center justify-center shrink-0 shadow-sm ${iconColor}`}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-extrabold text-sm tracking-tight">{alertTitle}</h3>
+                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${
+                    riskLevel === 'critical' ? 'bg-red-100 text-red-700 border-red-200' : (riskLevel === 'medium' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-green-100 text-green-700 border-green-200')
+                  }`}>
+                    {riskLabel}
+                  </span>
+                </div>
+                <p className="text-xs font-medium opacity-90 leading-relaxed">{alertDesc}</p>
+                
+                {/* Details list for medium/critical warnings */}
+                {((report.tampering_details && report.tampering_details.length > 0) || (report.injection_details && report.injection_details.length > 0)) && (
+                  <div className="mt-4 bg-white/60 p-4 rounded-xl border border-slate-100 font-mono text-[10px] text-slate-700 space-y-1.5 max-w-2xl shadow-inner">
+                    <div className="font-bold text-[9px] uppercase tracking-wider text-slate-500 mb-1">Detailed Findings:</div>
+                    {report.tampering_details.map((d, idx) => (
+                      <div key={idx} className="flex gap-2 items-start leading-normal">
+                        <span className="text-amber-500 font-bold select-none shrink-0">[TAMPER]</span>
+                        <span>{d}</span>
+                      </div>
+                    ))}
+                    {report.injection_details.map((d, idx) => (
+                      <div key={idx} className="flex gap-2 items-start leading-normal">
+                        <span className="text-red-500 font-bold select-none shrink-0">[INJECT]</span>
+                        <span>{d}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -73,6 +142,16 @@ const BidderDetail = () => {
                 };
                 const routing = getRoutingInfo(ext.source_document);
 
+                // Check if this document has tampering warnings in the security report
+                const securityReport = data.bidder.security_report;
+                let hasTamperingWarning = false;
+                if (securityReport && securityReport.scanned_files) {
+                  const fileRecord = securityReport.scanned_files.find(sf => sf.filename === ext.source_document);
+                  if (fileRecord && fileRecord.report.tampering_detected) {
+                    hasTamperingWarning = true;
+                  }
+                }
+
                 return (
                   <React.Fragment key={ext.id}>
                     <tr className="hover:bg-gray-50 cursor-pointer transition" onClick={() => setExpandedRow(isExpanded ? null : ext.id)}>
@@ -98,6 +177,11 @@ const BidderDetail = () => {
                             <span className={`px-3 py-1 rounded-full text-xs font-bold w-fit ${badgeClass}`}>
                               {verdict?.status || 'Pending'}
                             </span>
+                            {hasTamperingWarning && (
+                              <span className="bg-amber-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded tracking-tighter uppercase">
+                                Forgery Warning
+                              </span>
+                            )}
                             {verdict?.overridden_by && (
                               <span className="bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded tracking-tighter uppercase">
                                 Manual

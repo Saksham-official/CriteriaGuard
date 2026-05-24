@@ -1,10 +1,18 @@
 from typing import Dict, Any
 
-def compute_verdict(criterion: Dict[str, Any], extraction: Dict[str, Any]) -> Dict[str, Any]:
+def compute_verdict(criterion: Dict[str, Any], extraction: Dict[str, Any], is_tampered_source: bool = False) -> Dict[str, Any]:
     """
     Pure deterministic logic. No LLM calls here.
     Returns: status (Eligible, Not Eligible, Needs Review), reason, review_sub_reason (optional)
     """
+    # 0. Check for document tampering warning
+    if is_tampered_source:
+        return {
+            "status": "Needs Review",
+            "reason": "CRITICAL RISK: Mismatched metadata or editing software signature detected in the source document.",
+            "review_sub_reason": "TAMPERING_WARNING"
+        }
+
     # 1. Low OCR quality or low confidence always needs human review
     confidence = extraction.get("extraction_confidence", 0)
     ocr_quality = extraction.get("ocr_quality", "high")

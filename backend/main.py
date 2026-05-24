@@ -1,15 +1,17 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 import sys
+import asyncio
 
 # Load environment variables
 load_dotenv()
 
 from utils.logger import setup_logging, logger
+from utils.websocket_manager import manager
 from routers.tenders import router as tenders_router
 from routers.bidders import router as bidders_router
 from routers.verdicts import router as verdicts_router
@@ -41,11 +43,13 @@ async def lifespan(app: FastAPI):
 
     if missing:
         logger.critical(f"Startup failed. Missing environment variables: {', '.join(missing)}")
-        import asyncio
         await asyncio.sleep(2)
         sys.exit(1)
 
     logger.info("All environment variables validated. System ready.")
+
+    # Set running event loop for thread-safe websocket broadcasts
+    manager.set_loop(asyncio.get_running_loop())
 
     yield  # application runs here
 
@@ -83,6 +87,20 @@ app.include_router(bidders_router)
 app.include_router(verdicts_router)
 app.include_router(reports_router)
 app.include_router(audit_router)
+
+
+@app.websocket("/ws/progress/{bidder_id}")
+async def websocket_progress_endpoint(websocket: WebSocket, bidder_id: str):
+    await manager.connect(bidder_id, websocket)
+    try:
+        while True:
+            # Maintain connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(bidder_id, websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error for bidder {bidder_id}: {e}")
+        manager.disconnect(bidder_id, websocket)
 
 
 @app.get("/health")

@@ -13,6 +13,7 @@ const BidderUpload = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
+  const [showLiveView, setShowLiveView] = useState(true);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -60,14 +61,24 @@ const BidderUpload = () => {
     setMessage('');
 
     try {
-      await axios.post(`${API_BASE_URL}/api/bidders/upload`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/bidders/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      setMessage(`Documents for ${bidderName} are now being processed!`);
-      setBidderName('');
-      setFiles([]);
+      const bidderId = response.data.bidder_id;
+      
+      if (showLiveView) {
+        // Navigate to the live WebSocket streaming processing viewport
+        navigate(`/bidder-processing/${tenderId}/${bidderId}`, {
+          state: { bidderName: bidderName }
+        });
+      } else {
+        // Stay on dashboard and process in background
+        navigate(`/dashboard/${tenderId}`, {
+          state: { successMessage: `Evaluation for "${bidderName}" started successfully in the background.` }
+        });
+      }
     } catch (err) {
       setError(err.response?.data?.detail || 'An error occurred during upload.');
     } finally {
@@ -169,6 +180,22 @@ const BidderUpload = () => {
                 <p className="font-bold text-sm">{message}</p>
               </div>
             )}
+
+            {/* Show Live View Toggle Option */}
+            <div className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-2">
+              <input 
+                type="checkbox" 
+                id="show-live-view"
+                checked={showLiveView}
+                disabled={loading}
+                onChange={(e) => setShowLiveView(e.target.checked)}
+                className="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="show-live-view" className="text-sm font-bold text-slate-750 cursor-pointer select-none flex items-center gap-1.5">
+                <span>Show Live "Glass Box" Streaming View</span>
+                <span className="text-[9px] font-black uppercase tracking-wider bg-blue-100/70 border border-blue-200 text-blue-700 px-2 py-0.5 rounded">Demo Mode</span>
+              </label>
+            </div>
 
             <button
               onClick={handleUpload}

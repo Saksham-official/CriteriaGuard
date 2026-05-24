@@ -56,6 +56,40 @@ const ComparativeMatrix = () => {
     }
   };
 
+  const getBiddersRanking = () => {
+    if (!data || !data.bidders || !data.bidders.length) return [];
+    
+    return [...data.bidders].map(bidder => {
+      const bidderVerdicts = data.verdicts.filter(v => v.bidder_id === bidder.id);
+      const passedCount = bidderVerdicts.filter(v => v.status === 'Eligible').length;
+      const failedCount = bidderVerdicts.filter(v => v.status === 'Not Eligible').length;
+      const reviewCount = bidderVerdicts.filter(v => v.status === 'Needs Review').length;
+      const totalCount = bidderVerdicts.length;
+      
+      const failedMandatory = bidderVerdicts.filter(v => {
+        const crit = data.criteria.find(c => c.id === v.criterion_id);
+        return crit && crit.mandatory && v.status === 'Not Eligible';
+      }).length;
+
+      return {
+        ...bidder,
+        passedCount,
+        failedCount,
+        reviewCount,
+        totalCount,
+        failedMandatory
+      };
+    }).sort((a, b) => {
+      if (a.failedMandatory !== b.failedMandatory) {
+        return a.failedMandatory - b.failedMandatory;
+      }
+      return b.passedCount - a.passedCount;
+    });
+  };
+
+  const rankings = getBiddersRanking();
+  const topBidder = rankings.length > 0 && rankings[0].totalCount > 0 ? rankings[0] : null;
+
   return (
     <div className="min-h-screen p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
@@ -140,6 +174,40 @@ const ComparativeMatrix = () => {
             </table>
           </div>
         </div>
+
+        {topBidder && (
+          <div className="mt-12 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 p-8 rounded-[2rem] border border-slate-800 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-700"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-700"></div>
+            
+            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center relative z-10">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-400/30 flex items-center justify-center text-3xl shadow-inner shrink-0">
+                🏆
+              </div>
+              <div className="flex-1">
+                <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">
+                  AI Evaluator Recommendation
+                </div>
+                <h2 className="text-2xl font-black tracking-tight">
+                  Suggested Award: <span className="text-indigo-300 font-extrabold">{topBidder.name}</span>
+                </h2>
+                <p className="text-slate-400 text-sm mt-1.5 leading-relaxed font-medium">
+                  Based on complete side-by-side criteria mapping, <span className="text-white font-bold">{topBidder.name}</span> demonstrates the highest alignment score, successfully passing <span className="text-emerald-400 font-bold">{topBidder.passedCount} out of {topBidder.totalCount || data.criteria.length}</span> criteria requirement ticks with <span className="text-white font-bold">{topBidder.failedMandatory === 0 ? "0 mandatory criteria failures" : `${topBidder.failedMandatory} mandatory criteria failures`}</span>.
+                </p>
+              </div>
+              
+              <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
+                <button
+                  onClick={() => navigate(`/bidder/${tenderId}/${topBidder.id}`)}
+                  className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+                >
+                  <span>View Details Report</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 flex gap-6 items-center justify-center text-xs font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-2"><span className="text-xl">✅</span> Eligible</div>

@@ -9,6 +9,7 @@ import BidderDetail from './pages/BidderDetail';
 import ReviewQueue from './pages/ReviewQueue';
 import AuditTrail from './pages/AuditTrail';
 import ComparativeMatrix from './pages/ComparativeMatrix';
+import BidderProcessing from './pages/BidderProcessing';
 import Header from './components/Header';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
             <Route path="/upload" element={<Upload />} />
             <Route path="/criteria-review/:tenderId" element={<CriteriaReview />} />
             <Route path="/bidder-upload/:tenderId" element={<BidderUpload />} />
+            <Route path="/bidder-processing/:tenderId/:bidderId" element={<BidderProcessing />} />
             <Route path="/dashboard/:tenderId" element={<Dashboard />} />
             <Route path="/bidder/:tenderId/:bidderId" element={<BidderDetail />} />
             <Route path="/review-queue/:tenderId" element={<ReviewQueue />} />

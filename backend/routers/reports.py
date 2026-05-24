@@ -52,6 +52,10 @@ async def export_tender_report(tender_id: str, officer_id: str = "SYSTEM_OR_OFFI
             bidders_data=bidders_data
         )
 
+        # Compute SHA-256 hash of the PDF bytes
+        import hashlib
+        pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+
         # Log to Audit
         log_audit_action(
             action_type="REPORT_EXPORT",
@@ -59,7 +63,7 @@ async def export_tender_report(tender_id: str, officer_id: str = "SYSTEM_OR_OFFI
             target_type="tender",
             target_id=tender_id,
             result="success",
-            metadata={"bidders_count": len(bidders)}
+            metadata={"bidders_count": len(bidders), "pdf_hash": pdf_hash}
         )
 
         return Response(content=pdf_bytes, media_type="application/pdf", headers={
