@@ -8,6 +8,47 @@ const AuditTrail = () => {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null);
+  const [verifyError, setVerifyError] = useState('');
+  const [draggingFile, setDraggingFile] = useState(false);
+
+  const calculateSHA256 = async (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const buffer = e.target.result;
+          const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          resolve(hashHex);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleVerifyFile = async (file) => {
+    if (!file) return;
+    setVerifyLoading(true);
+    setVerifyError('');
+    setVerifyResult(null);
+
+    try {
+      const hashHex = await calculateSHA256(file);
+      const response = await axios.post(`${API_BASE_URL}/api/audit/verify-pdf`, { pdf_hash: hashHex });
+      setVerifyResult(response.data);
+    } catch (err) {
+      console.error(err);
+      setVerifyError('An error occurred during cryptographic verification.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchAudit = async () => {
@@ -46,7 +87,18 @@ const AuditTrail = () => {
             <h1 className="text-5xl font-black text-slate-900 tracking-tight leading-none mb-3">System Audit Trail</h1>
             <p className="text-slate-500 font-medium max-w-xl">Every decision, extraction, and override is cryptographically hashed and chained to prevent tampering.</p>
           </div>
-          <div className="flex gap-3 animate-in fade-in slide-in-from-right duration-700">
+          <div className="flex flex-wrap gap-3 animate-in fade-in slide-in-from-right duration-700">
+            {data && data.logs && (
+              <button 
+                onClick={() => {
+                  const officerId = localStorage.getItem('officerId') || 'SYSTEM_OR_OFFICER';
+                  window.open(`${API_BASE_URL}/api/audit/export-pdf?officer_id=${officerId}`, '_blank');
+                }}
+                className="bg-blue-600 text-white px-6 py-2.5 rounded-2xl font-bold text-sm hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center gap-2"
+              >
+                📥 Download Audit Log (.pdf)
+              </button>
+            )}
             <button 
               onClick={() => navigate(-1)} 
               className="bg-slate-900 text-white px-6 py-2.5 rounded-2xl font-bold text-sm hover:bg-black transition shadow-lg shadow-slate-200"
@@ -88,6 +140,130 @@ const AuditTrail = () => {
                   Entries: {logs.length} Blocks
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Drag and Drop Cryptographic Verification Widget */}
+        <div className="bg-white rounded-[2rem] p-8 mb-12 border border-slate-100 shadow-sm relative overflow-hidden animate-in fade-in zoom-in duration-600">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl"></div>
+          
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Verify Report Authenticity (SHA-256 Ledger Audit)</h3>
+          
+          <div className="flex flex-col lg:flex-row gap-8 items-stretch">
+            {/* File Dropzone */}
+            <div 
+              onDragOver={(e) => { e.preventDefault(); setDraggingFile(true); }}
+              onDragLeave={() => setDraggingFile(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDraggingFile(false);
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  handleVerifyFile(e.dataTransfer.files[0]);
+                }
+              }}
+              onClick={() => document.getElementById('verify-pdf-upload').click()}
+              className={`flex-1 border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
+                draggingFile 
+                  ? 'bg-blue-50 border-blue-500 scale-[1.01]' 
+                  : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-blue-400'
+              }`}
+            >
+              <input 
+                type="file" 
+                accept=".pdf"
+                id="verify-pdf-upload"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleVerifyFile(e.target.files[0]);
+                  }
+                }}
+                className="hidden"
+              />
+              <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm text-2xl mb-4">
+                📁
+              </div>
+              <p className="text-slate-700 font-bold text-sm text-center">
+                Drag & Drop Generated PDF Report
+              </p>
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mt-1.5 text-center">
+                Or click to browse files
+              </p>
+            </div>
+
+            {/* Results Output Viewport */}
+            <div className="flex-1 min-h-[160px] bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-300 flex flex-col justify-center relative overflow-hidden font-sans shadow-inner">
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                <span className="text-[8px] font-mono text-slate-500 font-bold tracking-wider uppercase">Verification Terminal</span>
+              </div>
+
+              {verifyLoading ? (
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className="w-8 h-8 border-3 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                  <p className="text-xs font-mono text-slate-400">Computing local SHA-256 hash...</p>
+                </div>
+              ) : verifyError ? (
+                <div className="flex gap-4 items-start">
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0 text-red-500 font-bold">!</div>
+                  <div>
+                    <h4 className="font-bold text-red-400 text-sm">System Verification Error</h4>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">{verifyError}</p>
+                  </div>
+                </div>
+              ) : verifyResult ? (
+                verifyResult.is_valid ? (
+                  <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+                    <div className="flex gap-4 items-start">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 text-xl shadow-lg shadow-emerald-900/30">
+                        ✓
+                      </div>
+                      <div>
+                        <h4 className="font-black text-emerald-400 text-sm tracking-tight flex items-center gap-2">
+                          <span>SIGNATURE VERIFIED</span>
+                          <span className="text-[8px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold tracking-widest uppercase">Genuine</span>
+                        </h4>
+                        <p className="text-xs text-slate-300 mt-1 leading-relaxed font-bold">
+                          Evaluation report matches exact seal logged on <span className="text-white">{new Date(verifyResult.audit_log.timestamp).toLocaleString()}</span>.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-2 pt-4 border-t border-slate-800 font-mono text-[9px] text-slate-500 space-y-1 bg-slate-950/40 p-4 rounded-xl shadow-inner">
+                      <div className="flex justify-between"><span>Audit Seq:</span> <span className="text-slate-400 font-bold">#{verifyResult.audit_log.sequence}</span></div>
+                      <div className="flex justify-between"><span>Signed By:</span> <span className="text-slate-400 font-bold">{verifyResult.audit_log.actor}</span></div>
+                      <div className="flex justify-between"><span>Chained Status:</span> <span className="text-emerald-400 font-bold">Ledger Integrity 100% Intact</span></div>
+                      <div className="flex justify-between gap-4 mt-1 border-t border-white/5 pt-1">
+                        <span>SHA-256:</span>
+                        <span className="text-blue-400 truncate max-w-[190px] font-bold" title={verifyResult.audit_log.metadata?.pdf_hash}>
+                          {verifyResult.audit_log.metadata?.pdf_hash}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-4 items-start animate-in shake duration-300">
+                    <div className="w-10 h-10 rounded-xl bg-rose-650 text-white flex items-center justify-center shrink-0 text-xl font-bold shadow-lg shadow-rose-900/30">
+                      ⚠️
+                    </div>
+                    <div>
+                      <h4 className="font-black text-rose-400 text-sm tracking-tight flex items-center gap-2">
+                        <span>VERIFICATION FAILED</span>
+                        <span className="text-[8px] bg-rose-500/10 border border-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded font-mono font-bold tracking-widest uppercase animate-pulse">Altered</span>
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-1 leading-relaxed font-medium">
+                        {verifyResult.message}
+                      </p>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center p-4 text-slate-500">
+                  <span className="text-3xl mb-2">🛡️</span>
+                  <p className="text-xs font-bold">Ledger Verification Node Ready</p>
+                  <p className="text-[10px] text-slate-600 mt-1 max-w-[200px] leading-normal">Drag or select a compiled PDF compliance report to mathematically verify its authenticity.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
