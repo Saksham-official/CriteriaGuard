@@ -124,6 +124,18 @@ graph TD
 
 ---
 
+## 🤝 Contributing
+We welcome contributions from the open-source and civic-tech community! Whether you are hardening adversarial document defenses, adding new vernacular models, or improving evaluation metrics:
+
+Please read our dedicated **[CONTRIBUTING.md](CONTRIBUTING.md)** for:
+- Detailed local environment setup (backend, frontend, database)
+- Running tests (`pytest`, `unittest`) and code coverage
+- Coding standards, architecture guidelines, and Pydantic schemas
+- Git branching conventions (`feat/`, `fix/`, `docs/`)
+- Pre-commit hook configuration with **Ruff**, **Black**, and **MyPy**
+
+---
+
 ## 📜 Governance Commitment
 CriteriaGuard is designed to be **domain-agnostic**. Whether it is defense (CRPF), infrastructure, or health, the system adapts to any tender structure. It sits *behind* the existing process, making it faster, more consistent, and 100% traceable.
 
