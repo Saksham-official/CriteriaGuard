@@ -4,6 +4,8 @@
 [![Hackathon](https://img.shields.io/badge/Hackathon-AI%20for%20Bharat-blueviolet?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard)
 [![Governance](https://img.shields.io/badge/Governance-Grade-emerald?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard)
 [![Tech](https://img.shields.io/badge/Stack-FastAPI%20%7C%20React%20%7C%20Llama%203-blue?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard/pulls)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge)](CODE_OF_CONDUCT.md)
 
 CriteriaGuard is a high-integrity, end-to-end platform designed to automate the manual, error-prone process of cross-checking bidder submissions against tender eligibility criteria. Built specifically for the complexities of **Indian Government Procurement**, it ensures every decision is **deterministic, traceable, and fully auditable**.
 
@@ -124,15 +126,26 @@ graph TD
 
 ---
 
-## 🤝 Contributing
-We welcome contributions from the open-source and civic-tech community! Whether you are hardening adversarial document defenses, adding new vernacular models, or improving evaluation metrics:
+## 🤝 Contributing & Community Roadmap
+We actively welcome contributions from the open-source and civic-tech community! Whether you are hardening adversarial document defenses, improving NLP criteria parsing, or refining the governance dashboard:
 
-Please read our dedicated **[CONTRIBUTING.md](CONTRIBUTING.md)** for:
-- Detailed local environment setup (backend, frontend, database)
-- Running tests (`pytest`, `unittest`) and code coverage
-- Coding standards, architecture guidelines, and Pydantic schemas
-- Git branching conventions (`feat/`, `fix/`, `docs/`)
-- Pre-commit hook configuration with **Ruff**, **Black**, and **MyPy**
+### 🌱 Open Contributor Tracks: Stage 1 — Tender Intelligence (CriteriaLens)
+
+We have opened 3 prioritized tracks for contributors to help advance **CriteriaLens**:
+
+| # | Track / Issue | Focus Area | Labels | Status |
+| :-: | :--- | :--- | :--- | :---: |
+| **[#2](https://github.com/Saksham-official/CriteriaGuard/issues/2)** | **[Formal Schema Extraction](https://github.com/Saksham-official/CriteriaGuard/issues/2)** | Multi-page RFP chunking, technical/financial/compliance mandates mapping, and Pydantic validation. | `backend`, `criteria-lens`, `enhancement` | **Help Wanted** |
+| **[#3](https://github.com/Saksham-official/CriteriaGuard/issues/3)** | **[Linguistic Marker Analysis](https://github.com/Saksham-official/CriteriaGuard/issues/3)** | Deontic modality engine identifying mandatory obligations ("shall", "must") vs optional preferences ("should", "preferred"). | `backend`, `nlp`, `criteria-lens` | **Help Wanted** |
+| **[#4](https://github.com/Saksham-official/CriteriaGuard/issues/4)** | **[Approval Checkpoints](https://github.com/Saksham-official/CriteriaGuard/issues/4)** | Interactive procurement officer review interface, edit baseline criteria, and lock SHA-256 audit checkpoint. | `frontend`, `backend`, `governance` | **Help Wanted** |
+
+### 🚀 How to Contribute
+
+1. Browse open issues on our [GitHub Issues Board](https://github.com/Saksham-official/CriteriaGuard/issues).
+2. Comment on an issue to let us know you'd like to work on it.
+3. Review our [Contributing Guide](CONTRIBUTING.md) for full local setup, linting, and testing workflows.
+4. Review our community [Code of Conduct](CODE_OF_CONDUCT.md).
+5. Submit a Pull Request referencing the issue (e.g., `Closes #2`). All PRs are automatically verified via [GitHub Actions CI](.github/workflows/ci.yml).
 
 ---
 

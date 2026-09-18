@@ -24,15 +24,19 @@ This document provides a comprehensive guide for contributors, covering everythi
    - [Ruff (Linting & Formatting)](#ruff-linting--formatting)
    - [Black (Deterministic Code Formatting)](#black-deterministic-code-formatting)
    - [MyPy (Static Type Checking)](#mypy-static-type-checking)
-6. [Branching Conventions & Git Workflow](#-branching-conventions--git-workflow)
+6. [Finding & Claiming an Issue](#-finding--claiming-an-issue)
+   - [Current Priority Tracks (CriteriaLens)](#current-priority-tracks-criterialens)
+   - [Issue Labels Guide](#issue-labels-guide)
+7. [Branching Conventions & Git Workflow](#-branching-conventions--git-workflow)
    - [Branch Naming Conventions](#branch-naming-conventions)
    - [Commit Message Guidelines](#commit-message-guidelines)
    - [Pull Request (PR) Workflow](#pull-request-pr-workflow)
-7. [Coding Standards](#-coding-standards)
+8. [Coding Standards](#-coding-standards)
    - [Python & FastAPI Standards](#python--fastapi-standards)
    - [React & Frontend Standards](#react--frontend-standards)
    - [Security & Anti-Tampering Standards](#security--anti-tampering-standards)
-8. [Reporting Issues & Getting Help](#-reporting-issues--getting-help)
+9. [Code of Conduct](#-code-of-conduct)
+10. [Reporting Issues & Getting Help](#-reporting-issues--getting-help)
 
 ---
 
@@ -323,6 +327,44 @@ pre-commit run --all-files
 
 ---
 
+## 🎯 Finding & Claiming an Issue
+
+We want contributing to CriteriaGuard to be transparent, organized, and rewarding.
+
+### Current Priority Tracks (CriteriaLens)
+
+If you are looking to make an immediate, high-impact contribution, we have three open workstreams in **Stage 1: Tender Intelligence (CriteriaLens)**:
+
+1. **[Issue #2: Formal Schema Extraction](https://github.com/Saksham-official/CriteriaGuard/issues/2)**
+   - *Domain*: Backend (Python, Pydantic v2, FastAPI)
+   - *Goal*: Automatically map out financial, technical, and statutory compliance mandates from multi-page tender PDFs into a strict `CriterionSchema`.
+2. **[Issue #3: Linguistic Marker Analysis](https://github.com/Saksham-official/CriteriaGuard/issues/3)**
+   - *Domain*: NLP & Deontic Modality (Regex, Python)
+   - *Goal*: Classify legal obligation markers (`shall`, `must`, `mandatorily`) versus optional preferences (`should`, `preferred`, `desirable`) to prevent AI misinterpretation of disqualification rules.
+3. **[Issue #4: Approval Checkpoints](https://github.com/Saksham-official/CriteriaGuard/issues/4)**
+   - *Domain*: Frontend & Governance (React 18, Vite, FastAPI, SHA-256 Audit)
+   - *Goal*: Build an officer review interface to inspect, edit, and officially sign off on extracted criteria before bidder evaluations begin.
+
+### Issue Labels Guide
+
+Look for these tags on our [GitHub Issues](https://github.com/Saksham-official/CriteriaGuard/issues):
+- `good first issue`: Accessible tasks ideal for newcomers to the codebase.
+- `help wanted`: Issues where community help is actively desired.
+- `criteria-lens`: Tasks related to Stage 1 tender extraction and schema mapping.
+- `backend`: Python, FastAPI, Pydantic, or engine logic.
+- `frontend`: React 18, Vite, UI/UX, or dashboard state.
+- `nlp`: Text extraction, linguistic markers, prompt engineering.
+- `governance`: Human-in-the-loop, GFR/CVC compliance, SHA-256 audit chaining.
+
+### How to Claim an Issue
+
+1. Navigate to the issue you want to work on.
+2. Comment on the issue expressing interest (e.g., *"I'd like to work on this issue. Here is my approach..."*).
+3. A maintainer will assign the issue to you to prevent duplicated efforts.
+4. If you have questions about requirements or architecture, ask directly in the issue comments!
+
+---
+
 ## 🌿 Branching Conventions & Git Workflow
 
 We use a feature-branch workflow. **Direct commits to `main` are strictly prohibited.**
@@ -452,6 +494,14 @@ We follow the **Conventional Commits** specification:
    - Bidders submit untrusted PDFs. Any new document ingestion pipeline must pass through `SecurityShield` to guard against hidden text injection layers and forged EXIF data.
 3. **Audit Immutability**:
    - Any database operations affecting tenders, bidders, or verdicts must record an event with SHA-256 hash chaining to maintain tamper evidence.
+
+---
+
+## 📜 Code of Conduct
+
+CriteriaGuard is dedicated to providing a welcoming, diverse, and harassment-free community for all contributors. All participants, maintainers, and contributors are expected to uphold the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+
+Please report any unacceptable behavior to the project maintainers.
 
 ---
 
