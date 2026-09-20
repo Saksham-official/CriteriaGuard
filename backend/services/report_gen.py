@@ -1,8 +1,8 @@
-import os
-from xhtml2pdf import pisa
-from jinja2 import Template
 import io
 from datetime import datetime
+
+from jinja2 import Template
+from xhtml2pdf import pisa
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -100,21 +100,22 @@ HTML_TEMPLATE = """
 </html>
 """
 
+
 def generate_tender_report_pdf(tender_id: str, tender_title: str, bidders_data: list) -> bytes:
     template = Template(HTML_TEMPLATE)
-    
+
     html_content = template.render(
         tender_id=tender_id,
         tender_title=tender_title,
         date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        bidders=bidders_data
+        bidders=bidders_data,
     )
-    
+
     # Render PDF
     pdf_buffer = io.BytesIO()
     pisa_status = pisa.CreatePDF(io.StringIO(html_content), dest=pdf_buffer)
-    
+
     if pisa_status.err:
         raise Exception("Failed to generate PDF report")
-        
+
     return pdf_buffer.getvalue()

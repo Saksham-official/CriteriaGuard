@@ -1,10 +1,13 @@
-from fastapi import APIRouter, HTTPException
 import hashlib
 import json
 from typing import Any
+
+from fastapi import APIRouter, HTTPException
+
 from db.database import supabase
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
+
 
 @router.get("/")
 async def get_audit_trail():
@@ -20,58 +23,56 @@ async def get_audit_trail():
             log: dict[str, Any] = raw_log  # type: ignore[assignment]
 
             # Normalize timestamp for stable verification (YYYY-MM-DDTHH:MM:SS)
-            raw_ts = str(log['timestamp'])
-            stable_ts = raw_ts.replace(' ', 'T').split('.')[0].split('+')[0]
-            if stable_ts.endswith('Z'):
+            raw_ts = str(log["timestamp"])
+            stable_ts = raw_ts.replace(" ", "T").split(".")[0].split("+")[0]
+            if stable_ts.endswith("Z"):
                 stable_ts = stable_ts[:-1]
 
             payload_stripped = {
-                "previous_hash": str(log['previous_hash']),
-                "action_type": str(log['action_type']),
-                "actor": str(log['actor']),
-                "target_id": str(log['target_id']),
-                "result": str(log['result']),
-                "timestamp": stable_ts
+                "previous_hash": str(log["previous_hash"]),
+                "action_type": str(log["action_type"]),
+                "actor": str(log["actor"]),
+                "target_id": str(log["target_id"]),
+                "result": str(log["result"]),
+                "timestamp": stable_ts,
             }
             content_to_hash_stripped = json.dumps(payload_stripped, sort_keys=True)
             computed_hash_stripped = hashlib.sha256(content_to_hash_stripped.encode()).hexdigest()
 
             payload_tz = {
-                "previous_hash": str(log['previous_hash']),
-                "action_type": str(log['action_type']),
-                "actor": str(log['actor']),
-                "target_id": str(log['target_id']),
-                "result": str(log['result']),
-                "timestamp": stable_ts + "+00:00"
+                "previous_hash": str(log["previous_hash"]),
+                "action_type": str(log["action_type"]),
+                "actor": str(log["actor"]),
+                "target_id": str(log["target_id"]),
+                "result": str(log["result"]),
+                "timestamp": stable_ts + "+00:00",
             }
             content_to_hash_tz = json.dumps(payload_tz, sort_keys=True)
             computed_hash_tz = hashlib.sha256(content_to_hash_tz.encode()).hexdigest()
 
-            is_intact = (computed_hash_stripped == log['entry_hash']) or (computed_hash_tz == log['entry_hash'])
+            is_intact = (computed_hash_stripped == log["entry_hash"]) or (
+                computed_hash_tz == log["entry_hash"]
+            )
             if not is_intact:
                 valid = False
 
-            verification_results.append({
-                "id": log["id"],
-                "is_intact": is_intact
-            })
+            verification_results.append({"id": log["id"], "is_intact": is_intact})
 
-        return {
-            "is_chain_valid": valid,
-            "logs": logs,
-            "verification": verification_results
-        }
+        return {"is_chain_valid": valid, "logs": logs, "verification": verification_results}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.get("/export-pdf")
 async def export_audit_pdf(officer_id: str = "SYSTEM_OR_OFFICER"):
     try:
+        import io
+        from datetime import datetime
+
         from fastapi.responses import Response
         from jinja2 import Template
         from xhtml2pdf import pisa
-        import io
-        from datetime import datetime
+
         from services.audit import log_audit_action
 
         # Fetch audit log in chronological order
@@ -82,34 +83,36 @@ async def export_audit_pdf(officer_id: str = "SYSTEM_OR_OFFICER"):
         valid = True
         for raw_log in logs:
             log: dict[str, Any] = raw_log  # type: ignore[assignment]
-            raw_ts = str(log['timestamp'])
-            stable_ts = raw_ts.replace(' ', 'T').split('.')[0].split('+')[0]
-            if stable_ts.endswith('Z'):
+            raw_ts = str(log["timestamp"])
+            stable_ts = raw_ts.replace(" ", "T").split(".")[0].split("+")[0]
+            if stable_ts.endswith("Z"):
                 stable_ts = stable_ts[:-1]
 
             payload_stripped = {
-                "previous_hash": str(log['previous_hash']),
-                "action_type": str(log['action_type']),
-                "actor": str(log['actor']),
-                "target_id": str(log['target_id']),
-                "result": str(log['result']),
-                "timestamp": stable_ts
+                "previous_hash": str(log["previous_hash"]),
+                "action_type": str(log["action_type"]),
+                "actor": str(log["actor"]),
+                "target_id": str(log["target_id"]),
+                "result": str(log["result"]),
+                "timestamp": stable_ts,
             }
             content_to_hash_stripped = json.dumps(payload_stripped, sort_keys=True)
             computed_hash_stripped = hashlib.sha256(content_to_hash_stripped.encode()).hexdigest()
 
             payload_tz = {
-                "previous_hash": str(log['previous_hash']),
-                "action_type": str(log['action_type']),
-                "actor": str(log['actor']),
-                "target_id": str(log['target_id']),
-                "result": str(log['result']),
-                "timestamp": stable_ts + "+00:00"
+                "previous_hash": str(log["previous_hash"]),
+                "action_type": str(log["action_type"]),
+                "actor": str(log["actor"]),
+                "target_id": str(log["target_id"]),
+                "result": str(log["result"]),
+                "timestamp": stable_ts + "+00:00",
             }
             content_to_hash_tz = json.dumps(payload_tz, sort_keys=True)
             computed_hash_tz = hashlib.sha256(content_to_hash_tz.encode()).hexdigest()
 
-            is_intact = (computed_hash_stripped == log['entry_hash']) or (computed_hash_tz == log['entry_hash'])
+            is_intact = (computed_hash_stripped == log["entry_hash"]) or (
+                computed_hash_tz == log["entry_hash"]
+            )
             if not is_intact:
                 valid = False
                 break
@@ -213,9 +216,7 @@ async def export_audit_pdf(officer_id: str = "SYSTEM_OR_OFFICER"):
 
         template = Template(audit_html_template)
         html_content = template.render(
-            is_chain_valid=valid,
-            logs=logs,
-            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            is_chain_valid=valid, logs=logs, date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         )
 
         pdf_buffer = io.BytesIO()
@@ -233,20 +234,27 @@ async def export_audit_pdf(officer_id: str = "SYSTEM_OR_OFFICER"):
             target_type="audit",
             target_id="system_ledger",
             result="success",
-            metadata={"logs_count": len(logs), "pdf_hash": pdf_hash}
+            metadata={"logs_count": len(logs), "pdf_hash": pdf_hash},
         )
 
-        return Response(content=pdf_bytes, media_type="application/pdf", headers={
-            "Content-Disposition": f'attachment; filename="criteriaguard_audit_ledger_{datetime.now().strftime("%Y-%m-%d")}.pdf"'
-        })
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="criteriaguard_audit_ledger_{datetime.now().strftime("%Y-%m-%d")}.pdf"'
+            },
+        )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 from pydantic import BaseModel
 
+
 class VerifyPDFRequest(BaseModel):
     pdf_hash: str
+
 
 @router.post("/verify-pdf")
 async def verify_pdf_report(req: VerifyPDFRequest):
@@ -255,65 +263,73 @@ async def verify_pdf_report(req: VerifyPDFRequest):
             raise HTTPException(status_code=503, detail="Database not configured.")
 
         # 1. Fetch REPORT_EXPORT logs
-        log_res = supabase.table("audit_log").select("*").eq("action_type", "REPORT_EXPORT").execute()
+        log_res = (
+            supabase.table("audit_log").select("*").eq("action_type", "REPORT_EXPORT").execute()
+        )
         logs = log_res.data
-        
+
         match_log = None
         for log in logs:
             meta = log.get("metadata") or {}
             if meta.get("pdf_hash") == req.pdf_hash:
                 match_log = log
                 break
-                
+
         if not match_log:
             return {
                 "is_valid": False,
-                "message": "No matching cryptographically sealed report found in the ledger. This document may have been altered, or was not generated by CriteriaGuard."
+                "message": "No matching cryptographically sealed report found in the ledger. This document may have been altered, or was not generated by CriteriaGuard.",
             }
-            
+
         # 2. Re-verify the entire hash chain integrity
-        all_logs_res = supabase.table("audit_log").select("*").order("sequence", desc=False).execute()
+        all_logs_res = (
+            supabase.table("audit_log").select("*").order("sequence", desc=False).execute()
+        )
         all_logs = all_logs_res.data
-        
+
         valid = True
         for log in all_logs:
-            raw_ts = str(log['timestamp'])
-            stable_ts = raw_ts.replace(' ', 'T').split('.')[0].split('+')[0]
-            if stable_ts.endswith('Z'):
+            raw_ts = str(log["timestamp"])
+            stable_ts = raw_ts.replace(" ", "T").split(".")[0].split("+")[0]
+            if stable_ts.endswith("Z"):
                 stable_ts = stable_ts[:-1]
 
             payload_stripped = {
-                "previous_hash": str(log['previous_hash']),
-                "action_type": str(log['action_type']),
-                "actor": str(log['actor']),
-                "target_id": str(log['target_id']),
-                "result": str(log['result']),
-                "timestamp": stable_ts
+                "previous_hash": str(log["previous_hash"]),
+                "action_type": str(log["action_type"]),
+                "actor": str(log["actor"]),
+                "target_id": str(log["target_id"]),
+                "result": str(log["result"]),
+                "timestamp": stable_ts,
             }
             content_to_hash_stripped = json.dumps(payload_stripped, sort_keys=True)
             computed_hash_stripped = hashlib.sha256(content_to_hash_stripped.encode()).hexdigest()
 
             payload_tz = {
-                "previous_hash": str(log['previous_hash']),
-                "action_type": str(log['action_type']),
-                "actor": str(log['actor']),
-                "target_id": str(log['target_id']),
-                "result": str(log['result']),
-                "timestamp": stable_ts + "+00:00"
+                "previous_hash": str(log["previous_hash"]),
+                "action_type": str(log["action_type"]),
+                "actor": str(log["actor"]),
+                "target_id": str(log["target_id"]),
+                "result": str(log["result"]),
+                "timestamp": stable_ts + "+00:00",
             }
             content_to_hash_tz = json.dumps(payload_tz, sort_keys=True)
             computed_hash_tz = hashlib.sha256(content_to_hash_tz.encode()).hexdigest()
 
-            is_intact = (computed_hash_stripped == log['entry_hash']) or (computed_hash_tz == log['entry_hash'])
+            is_intact = (computed_hash_stripped == log["entry_hash"]) or (
+                computed_hash_tz == log["entry_hash"]
+            )
             if not is_intact:
                 valid = False
                 break
-                
+
         return {
             "is_valid": True,
             "is_chain_valid": valid,
             "audit_log": match_log,
-            "message": "Cryptographic signature verified! The document is genuine and the ledger is secure."
+            "message": "Cryptographic signature verified! The document is genuine and the ledger is secure.",
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

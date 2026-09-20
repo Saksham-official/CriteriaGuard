@@ -1,12 +1,14 @@
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-from typing import List, Any
 
 from db.database import get_db
-from services.report_gen import generate_tender_report_pdf
 from services.audit import log_audit_action
+from services.report_gen import generate_tender_report_pdf
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
+
 
 @router.get("/export/{tender_id}")
 async def export_tender_report(tender_id: str, officer_id: str = "SYSTEM_OR_OFFICER"):
@@ -25,7 +27,12 @@ async def export_tender_report(tender_id: str, officer_id: str = "SYSTEM_OR_OFFI
         bidders_data = []
         for raw_bidder in bidders:
             bidder: dict[str, Any] = raw_bidder  # type: ignore[assignment]
-            ext_res = db.table("extractions").select("*, criteria(*)").eq("bidder_id", bidder["id"]).execute()
+            ext_res = (
+                db.table("extractions")
+                .select("*, criteria(*)")
+                .eq("bidder_id", bidder["id"])
+                .execute()
+            )
             verdict_res = db.table("verdicts").select("*").eq("bidder_id", bidder["id"]).execute()
 
             # map extractions with their verdicts
@@ -35,25 +42,28 @@ async def export_tender_report(tender_id: str, officer_id: str = "SYSTEM_OR_OFFI
             for ext in extractions:
                 ext["verdict"] = next(
                     (v for v in verdicts if v["criterion_id"] == ext["criterion_id"]),
-                    {"status": "Pending", "reason": "No verdict yet"}
+                    {"status": "Pending", "reason": "No verdict yet"},
                 )
 
-            bidders_data.append({
-                "id": bidder["id"],
-                "name": bidder["name"],
-                "status": bidder["status"],
-                "extractions": extractions
-            })
+            bidders_data.append(
+                {
+                    "id": bidder["id"],
+                    "name": bidder["name"],
+                    "status": bidder["status"],
+                    "extractions": extractions,
+                }
+            )
 
         # Generate PDF
         pdf_bytes = generate_tender_report_pdf(
             tender_id=str(tender["id"]),
             tender_title=str(tender["title"]),
-            bidders_data=bidders_data
+            bidders_data=bidders_data,
         )
 
         # Compute SHA-256 hash of the PDF bytes
         import hashlib
+
         pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
 
         # Log to Audit
@@ -63,12 +73,18 @@ async def export_tender_report(tender_id: str, officer_id: str = "SYSTEM_OR_OFFI
             target_type="tender",
             target_id=tender_id,
             result="success",
-            metadata={"bidders_count": len(bidders), "pdf_hash": pdf_hash}
+            metadata={"bidders_count": len(bidders), "pdf_hash": pdf_hash},
         )
 
-        return Response(content=pdf_bytes, media_type="application/pdf", headers={
-            "Content-Disposition": f'attachment; filename="criteriaguard_report_{tender_id[:8]}.pdf"'
-        })
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="criteriaguard_report_{tender_id[:8]}.pdf"'
+            },
+        )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

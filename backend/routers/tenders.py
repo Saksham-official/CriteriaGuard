@@ -1,25 +1,27 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
-from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
-import shutil
 import os
+import shutil
 import uuid
+from typing import Any
 
-from services.pdf_extractor import extract_text_from_pdf, format_pages_for_prompt, DocPage
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
+
+from db.database import get_db
+from engines.ambiguity_resolver import resolve_ambiguity
+from engines.criteria_lens import extract_criteria_from_text
+from services.audit import log_audit_action
 from services.docx_extractor import extract_text_from_docx
 from services.ocr import extract_text_from_image
-from engines.criteria_lens import extract_criteria_from_text
-from engines.ambiguity_resolver import resolve_ambiguity
-from services.audit import log_audit_action
+from services.pdf_extractor import DocPage, extract_text_from_pdf, format_pages_for_prompt
 from utils.logger import logger
-from db.database import get_db
-from models.criterion import CriterionSchema
 
 router = APIRouter(prefix="/api/tenders", tags=["tenders"])
+
 
 class AmbiguityRequest(BaseModel):
     text: str
     source_clause: str
+
 
 @router.post("/resolve-ambiguity")
 async def get_ambiguity_suggestion(request: AmbiguityRequest):
@@ -27,21 +29,23 @@ async def get_ambiguity_suggestion(request: AmbiguityRequest):
         suggestion = resolve_ambiguity(request.text, request.source_clause)
         return suggestion
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 UPLOAD_DIR = "uploads/tenders"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+
 @router.post("/upload")
 async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SYSTEM_OR_OFFICER")):
-    allowed_extensions = {'.pdf', '.docx', '.jpg', '.jpeg', '.png', '.tiff'}
+    allowed_extensions = {".pdf", ".docx", ".jpg", ".jpeg", ".png", ".tiff"}
     filename = file.filename or ""
     ext = os.path.splitext(filename)[1].lower()
 
     if ext not in allowed_extensions:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file format. Supported: {', '.join(allowed_extensions)}"
+            detail=f"Unsupported file format. Supported: {', '.join(allowed_extensions)}",
         )
 
     file_id = str(uuid.uuid4())
@@ -53,16 +57,22 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
     # 1. Insert into Supabase 'tenders' table
     db = get_db()
     try:
-        tender_res = db.table("tenders").insert({
-            "title": filename,
-            "file_path": file_path,
-            "status": "processing",
-            "created_by": officer_id
-        }).execute()
+        tender_res = (
+            db.table("tenders")
+            .insert(
+                {
+                    "title": filename,
+                    "file_path": file_path,
+                    "status": "processing",
+                    "created_by": officer_id,
+                }
+            )
+            .execute()
+        )
         tender_row: dict[str, Any] = tender_res.data[0]  # type: ignore[assignment]
         tender_id = str(tender_row["id"])
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
 
     # Log to Audit
     log_audit_action(
@@ -71,22 +81,24 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
         target_type="tender",
         target_id=tender_id,
         result="success",
-        metadata={"filename": filename}
+        metadata={"filename": filename},
     )
 
     # 2. Extract text based on file type
     pages = []
-    if ext == '.pdf':
+    if ext == ".pdf":
         pages = extract_text_from_pdf(file_path)
-    elif ext == '.docx':
+    elif ext == ".docx":
         pages = extract_text_from_docx(file_path)
-    elif ext in {'.jpg', '.jpeg', '.png', '.tiff'}:
+    elif ext in {".jpg", ".jpeg", ".png", ".tiff"}:
         ocr_res = extract_text_from_image(file_path)
         if ocr_res.text:
             pages = [DocPage(page_number=1, text=ocr_res.text)]
 
     if not pages:
-        raise HTTPException(status_code=400, detail="Could not extract text from the provided document")
+        raise HTTPException(
+            status_code=400, detail="Could not extract text from the provided document"
+        )
 
     tender_text = format_pages_for_prompt(pages)
 
@@ -99,7 +111,7 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
                 "Extracted text is too short to contain eligibility criteria. "
                 "The PDF may be a scanned image without OCR support, password-protected, "
                 "or contain no machine-readable text."
-            )
+            ),
         )
 
     logger.info(f"Tender {tender_id}: extracted {len(pages)} pages, {len(tender_text)} chars.")
@@ -111,11 +123,11 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
     except Exception as e:
         logger.error(f"LLM extraction exception for tender {tender_id}: {e}", exc_info=True)
         db.table("tenders").update({"status": "failed"}).eq("id", tender_id).execute()
-        raise HTTPException(status_code=500, detail=f"LLM extraction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"LLM extraction failed: {str(e)}") from e
 
     # 4. Save extracted criteria to DB
     criteria_inserts = []
-    for i, criterion in enumerate(criteria_list):
+    for criterion in criteria_list:
         crit_dict = criterion.model_dump()
 
         db_record: dict[str, Any] = {
@@ -127,17 +139,19 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
             "mandatory_confidence": crit_dict["mandatory_confidence"],
             "evidence_documents": crit_dict["evidence_documents"],
             "source_clause": crit_dict["source_clause"],
-            "source_page": crit_dict.get("source_page", 1)
+            "source_page": crit_dict.get("source_page", 1),
         }
 
         if crit_dict.get("threshold"):
             t = crit_dict["threshold"]
-            db_record.update({
-                "threshold_value": t.get("value"),
-                "threshold_unit": t.get("unit"),
-                "threshold_period": t.get("period"),
-                "threshold_comparison": t.get("comparison")
-            })
+            db_record.update(
+                {
+                    "threshold_value": t.get("value"),
+                    "threshold_unit": t.get("unit"),
+                    "threshold_period": t.get("period"),
+                    "threshold_comparison": t.get("comparison"),
+                }
+            )
 
         criteria_inserts.append(db_record)
 
@@ -156,7 +170,7 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
                 "(2) The PDF contains complex layouts/tables that the LLM could not parse, "
                 "(3) Groq API rate limits were exceeded. "
                 "Please try a different PDF or check if the document is machine-readable."
-            )
+            ),
         )
 
     db.table("criteria").insert(criteria_inserts).execute()
@@ -166,6 +180,7 @@ async def upload_tender(file: UploadFile = File(...), officer_id: str = Form("SY
 
     return {"message": "Tender processed successfully", "tender_id": tender_id}
 
+
 @router.get("/{tender_id}/criteria")
 async def get_criteria(tender_id: str):
     res = get_db().table("criteria").select("*").eq("tender_id", tender_id).execute()
@@ -173,14 +188,16 @@ async def get_criteria(tender_id: str):
         raise HTTPException(status_code=404, detail="No criteria found for this tender")
     return res.data
 
+
 class CriterionUpdate(BaseModel):
-    text: Optional[str] = None
-    mandatory: Optional[bool] = None
-    mandatory_confidence: Optional[str] = None
-    category: Optional[str] = None
-    approved_by: Optional[str] = None
-    approved_at: Optional[str] = None
-    reason: Optional[str] = None
+    text: str | None = None
+    mandatory: bool | None = None
+    mandatory_confidence: str | None = None
+    category: str | None = None
+    approved_by: str | None = None
+    approved_at: str | None = None
+    reason: str | None = None
+
 
 @router.patch("/{tender_id}/criteria/{criterion_id}")
 async def update_criterion(tender_id: str, criterion_id: str, update_data: CriterionUpdate):
@@ -196,14 +213,16 @@ async def update_criterion(tender_id: str, criterion_id: str, update_data: Crite
             target_type="criterion",
             target_id=criterion_id,
             result="approved",
-            metadata={"tender_id": tender_id}
+            metadata={"tender_id": tender_id},
         )
     return res.data
 
+
 @router.delete("/{tender_id}/criteria/{criterion_id}")
 async def delete_criterion(tender_id: str, criterion_id: str):
-    res = get_db().table("criteria").delete().eq("id", criterion_id).execute()
+    get_db().table("criteria").delete().eq("id", criterion_id).execute()
     return {"message": "Criterion deleted"}
+
 
 class CriterionCreate(BaseModel):
     criterion_code: str
@@ -212,8 +231,11 @@ class CriterionCreate(BaseModel):
     mandatory: bool
     source_clause: str
 
+
 @router.post("/{tender_id}/criteria")
-async def add_criterion(tender_id: str, criterion: CriterionCreate, officer_id: str = "SYSTEM_OR_OFFICER"):
+async def add_criterion(
+    tender_id: str, criterion: CriterionCreate, officer_id: str = "SYSTEM_OR_OFFICER"
+):
     db_record = criterion.model_dump()
     db_record["tender_id"] = tender_id
     res = get_db().table("criteria").insert(db_record).execute()
@@ -226,7 +248,7 @@ async def add_criterion(tender_id: str, criterion: CriterionCreate, officer_id: 
             target_type="criterion",
             target_id=str(new_row["id"]),
             result="created",
-            metadata={"tender_id": tender_id, "code": criterion.criterion_code}
+            metadata={"tender_id": tender_id, "code": criterion.criterion_code},
         )
         return new_row
     raise HTTPException(status_code=500, detail="Failed to add criterion")

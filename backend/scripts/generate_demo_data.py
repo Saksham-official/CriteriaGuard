@@ -1,7 +1,8 @@
-import os
-from xhtml2pdf import pisa
-from jinja2 import Template
 import io
+import os
+
+from jinja2 import Template
+from xhtml2pdf import pisa
 
 # Simple HTML template for generating demo PDFs
 DEMO_TEMPLATE = """
@@ -29,13 +30,15 @@ DEMO_TEMPLATE = """
 </html>
 """
 
+
 def create_pdf(filename, title, body):
     template = Template(DEMO_TEMPLATE)
     html_content = template.render(title=title, body=body)
-    
+
     with open(filename, "wb") as f:
         pisa.CreatePDF(io.StringIO(html_content), dest=f)
     print(f"Created {filename}")
+
 
 # 1. Mock Tender
 tender_body = """
@@ -94,20 +97,40 @@ bidder_5 = """
 <p>Local Content: 50%.</p>
 """
 
+
 def main():
     upload_dir = "backend/uploads"
     tenders_dir = os.path.join(upload_dir, "tenders")
     bidders_dir = os.path.join(upload_dir, "bidders")
-    
+
     os.makedirs(tenders_dir, exist_ok=True)
     os.makedirs(bidders_dir, exist_ok=True)
-    
-    create_pdf(os.path.join(tenders_dir, "mock_tender.pdf"), "Tender for High-Altitude Tactical Drones", tender_body)
-    create_pdf(os.path.join(bidders_dir, "bidder_1_eligible.pdf"), "AeroTech Solutions Proposal", bidder_1)
-    create_pdf(os.path.join(bidders_dir, "bidder_2_low_turnover.pdf"), "SkyBound Drones Proposal", bidder_2)
-    create_pdf(os.path.join(bidders_dir, "bidder_3_no_experience.pdf"), "Global Defense Proposal", bidder_3)
-    create_pdf(os.path.join(bidders_dir, "bidder_4_missing_iso.pdf"), "Precision Airworks Proposal", bidder_4)
-    create_pdf(os.path.join(bidders_dir, "bidder_5_borderline.pdf"), "Marginal Aviations Proposal", bidder_5)
+
+    create_pdf(
+        os.path.join(tenders_dir, "mock_tender.pdf"),
+        "Tender for High-Altitude Tactical Drones",
+        tender_body,
+    )
+    create_pdf(
+        os.path.join(bidders_dir, "bidder_1_eligible.pdf"), "AeroTech Solutions Proposal", bidder_1
+    )
+    create_pdf(
+        os.path.join(bidders_dir, "bidder_2_low_turnover.pdf"), "SkyBound Drones Proposal", bidder_2
+    )
+    create_pdf(
+        os.path.join(bidders_dir, "bidder_3_no_experience.pdf"), "Global Defense Proposal", bidder_3
+    )
+    create_pdf(
+        os.path.join(bidders_dir, "bidder_4_missing_iso.pdf"),
+        "Precision Airworks Proposal",
+        bidder_4,
+    )
+    create_pdf(
+        os.path.join(bidders_dir, "bidder_5_borderline.pdf"),
+        "Marginal Aviations Proposal",
+        bidder_5,
+    )
+
 
 if __name__ == "__main__":
     main()

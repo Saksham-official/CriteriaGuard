@@ -1,27 +1,29 @@
-import os
 import json
-import httpx
+import os
 import re
 import time
-from pydantic import ValidationError
-from typing import Dict, Any
+
+import httpx
 from groq import Groq, RateLimitError
 
 from models.extraction import ExtractionSchema
-from prompts.value_extraction import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, RETRY_PROMPT_TEMPLATE
+from prompts.value_extraction import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from utils.logger import logger
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # Live Groq models as of May 2026
 MODELS = [
-    "meta-llama/llama-4-scout-17b-16e-instruct", 
-    "llama-3.3-70b-versatile",                   
-    "qwen/qwen3-32b",                            
-    "llama-3.1-8b-instant",                      
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "llama-3.3-70b-versatile",
+    "qwen/qwen3-32b",
+    "llama-3.1-8b-instant",
 ]
 
-def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str, on_token=None) -> ExtractionSchema:
+
+def extract_value_for_criterion(
+    criterion_dict: dict, documents_with_labels: str, on_token=None
+) -> ExtractionSchema:
     # Safety truncation for Groq free tier to stay within TPM limits
     # 15k chars (~4k tokens) + 1k max_tokens < 6k TPM limit
     documents_with_labels = documents_with_labels[:15000]
@@ -29,15 +31,17 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
     user_prompt = USER_PROMPT_TEMPLATE.format(
         criterion_json=json.dumps(criterion_dict, indent=2),
         documents_with_labels=documents_with_labels,
-        criterion_id=criterion_dict.get('id', 'unknown')
+        criterion_id=criterion_dict.get("id", "unknown"),
     )
-    
+
     for model in MODELS:
         max_retries = 2
         for attempt in range(max_retries):
             try:
                 if on_token:
-                    logger.info(f"DocProbe: Calling {model} in streaming mode for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})")
+                    logger.info(
+                        f"DocProbe: Calling {model} in streaming mode for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})"
+                    )
                     response_stream = client.chat.completions.create(
                         model=model,
                         max_tokens=1000,  # Reduced to stay under TPM limits
@@ -45,21 +49,23 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
                         timeout=httpx.Timeout(60.0, connect=10.0),
                         messages=[
                             {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": user_prompt}
+                            {"role": "user", "content": user_prompt},
                         ],
-                        stream=True
+                        stream=True,
                     )
-                    
+
                     full_content = ""
                     for chunk in response_stream:
                         if chunk.choices and chunk.choices[0].delta.content:
                             token = chunk.choices[0].delta.content
                             full_content += token
                             on_token(token)
-                    
+
                     raw_output = full_content.strip()
                 else:
-                    logger.info(f"DocProbe: Calling {model} for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})")
+                    logger.info(
+                        f"DocProbe: Calling {model} for criterion {criterion_dict.get('id', '?')} (attempt {attempt+1})"
+                    )
                     response = client.chat.completions.create(
                         model=model,
                         max_tokens=1000,  # Reduced to stay under TPM limits
@@ -67,13 +73,13 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
                         timeout=httpx.Timeout(60.0, connect=10.0),
                         messages=[
                             {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": user_prompt}
-                        ]
+                            {"role": "user", "content": user_prompt},
+                        ],
                     )
-                    
+
                     content = response.choices[0].message.content
                     raw_output = content.strip() if content else ""
-                
+
                 if not raw_output:
                     continue
 
@@ -82,16 +88,16 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
                     raw_output = raw_output.split("```json")[1].split("```")[0].strip()
                 elif "```" in raw_output:
                     raw_output = raw_output.split("```")[1].split("```")[0].strip()
-                    
+
                 try:
                     data = json.loads(raw_output)
                 except json.JSONDecodeError:
                     # Regex fallback
-                    match = re.search(r'\{.*\}', raw_output, re.DOTALL)
+                    match = re.search(r"\{.*\}", raw_output, re.DOTALL)
                     if match:
                         try:
                             data = json.loads(match.group(0))
-                        except:
+                        except Exception:
                             continue
                     else:
                         continue
@@ -99,21 +105,21 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
                 # Basic validation: ensure it's a dict
                 if not isinstance(data, dict):
                     continue
-                
+
                 # Ensure criterion_id matches (LLM sometimes hallucinations it)
                 data["criterion_id"] = str(criterion_dict.get("id"))
 
                 return ExtractionSchema(**data)
-                
+
             except RateLimitError:
                 if attempt < max_retries - 1:
                     time.sleep(5 * (attempt + 1))
                     continue
                 else:
-                    break # Try next model
+                    break  # Try next model
             except Exception as e:
                 logger.warning(f"DocProbe: Model {model} failed with {type(e).__name__}: {e}")
-                break # Try next model
+                break  # Try next model
 
     # Fallback: return a "not found" extraction if all models fail
     return ExtractionSchema(
@@ -123,5 +129,5 @@ def extract_value_for_criterion(criterion_dict: dict, documents_with_labels: str
         ocr_quality="low",
         alignment_score=0,
         authenticity_score=0,
-        notes="All LLM extraction attempts failed (potential rate limit or model timeout)."
+        notes="All LLM extraction attempts failed (potential rate limit or model timeout).",
     )

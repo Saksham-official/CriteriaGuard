@@ -1,22 +1,23 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+import asyncio
 import os
 import sys
-import asyncio
+from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 # Load environment variables
 load_dotenv()
 
-from utils.logger import setup_logging, logger
-from utils.websocket_manager import manager
-from routers.tenders import router as tenders_router
-from routers.bidders import router as bidders_router
-from routers.verdicts import router as verdicts_router
-from routers.reports import router as reports_router
 from routers.audit import router as audit_router
+from routers.bidders import router as bidders_router
+from routers.reports import router as reports_router
+from routers.tenders import router as tenders_router
+from routers.verdicts import router as verdicts_router
+from utils.logger import logger, setup_logging
+from utils.websocket_manager import manager
 
 # Initialize Logging
 setup_logging()
@@ -110,5 +111,6 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

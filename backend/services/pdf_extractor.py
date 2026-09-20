@@ -1,7 +1,8 @@
-import fitz  # PyMuPDF
-from typing import List, Optional
 import os
 import uuid
+
+import fitz  # PyMuPDF
+
 from services.ocr import extract_text_from_image
 from utils.logger import logger
 
@@ -13,12 +14,14 @@ MAX_PDF_PAGES = 40
 # Raised from 50 → 30 to avoid firing OCR for pages with short-but-real text.
 SCAN_THRESHOLD = 30
 
+
 class DocPage:
     def __init__(self, page_number: int, text: str):
         self.page_number = page_number
         self.text = text
 
-def extract_text_from_pdf(file_path: str, enable_ocr: bool = True) -> List[DocPage]:
+
+def extract_text_from_pdf(file_path: str, enable_ocr: bool = True) -> list[DocPage]:
     """
     Extract text from a PDF.
 
@@ -67,7 +70,8 @@ def extract_text_from_pdf(file_path: str, enable_ocr: bool = True) -> List[DocPa
 
     return pages
 
-def format_pages_for_prompt(pages: List[DocPage], max_pages: Optional[int] = None) -> str:
+
+def format_pages_for_prompt(pages: list[DocPage], max_pages: int | None = None) -> str:
     """Combine pages into a single text block for the LLM prompt."""
     if max_pages is not None and len(pages) > max_pages:
         pages = pages[:max_pages]

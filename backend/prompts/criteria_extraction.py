@@ -37,7 +37,7 @@ Return a JSON array. Each element must match this exact schema:
 }}
 
 Rules:
-- Set mandatory_confidence to "ambiguous" if the document uses language 
+- Set mandatory_confidence to "ambiguous" if the document uses language
   other than "shall"/"must"/"essential" to signal a requirement
 - If threshold is not numeric (e.g. "valid registration"), set threshold to null
 - Include every criterion you find — do not skip any

@@ -1,11 +1,12 @@
-import os
 import json
+import os
 import re
 import time
+
 import httpx
-from pydantic import ValidationError
-from typing import List, Optional, Any
 from groq import Groq, RateLimitError
+from pydantic import ValidationError
+
 from models.criterion import CriterionSchema
 from prompts.criteria_extraction import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from utils.logger import logger
@@ -13,7 +14,8 @@ from utils.logger import logger
 # Ensure groq client is initialized
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-def _coerce_criterion(item: dict) -> Optional[CriterionSchema]:
+
+def _coerce_criterion(item: dict) -> CriterionSchema | None:
     """
     Try to coerce a raw dict from the LLM into a CriterionSchema,
     applying best-effort type fixes before strict validation.
@@ -63,7 +65,7 @@ def _coerce_criterion(item: dict) -> Optional[CriterionSchema]:
         return None
 
 
-def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
+def extract_criteria_from_text(tender_text: str) -> list[CriterionSchema]:
     """
     Extract eligibility criteria from tender text using Groq LLM.
     Strategy: Smaller chunks and lower max_tokens to stay within TPM limits.
@@ -74,19 +76,19 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
 
     # Live Groq models as of May 2026.
     MODELS = [
-        "meta-llama/llama-4-scout-17b-16e-instruct", 
-        "llama-3.3-70b-versatile",                   
-        "qwen/qwen3-32b",                            
-        "llama-3.1-8b-instant",                      
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "llama-3.3-70b-versatile",
+        "qwen/qwen3-32b",
+        "llama-3.1-8b-instant",
     ]
 
-    all_criteria: List[CriterionSchema] = []
+    all_criteria: list[CriterionSchema] = []
     seen_codes: set = set()
 
-    def _call_llm(text_chunk: str, chunk_label: str) -> List[CriterionSchema]:
+    def _call_llm(text_chunk: str, chunk_label: str) -> list[CriterionSchema]:
         """Call Groq LLM for a single chunk, trying each model with retries."""
         user_prompt = USER_PROMPT_TEMPLATE.format(tender_text=text_chunk)
-        chunk_criteria: List[CriterionSchema] = []
+        chunk_criteria: list[CriterionSchema] = []
 
         all_rate_limited = True
         for model in MODELS:
@@ -95,7 +97,9 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
 
             for attempt in range(max_retries):
                 try:
-                    logger.info(f"[{chunk_label}] Calling Groq model={model}, attempt={attempt+1}...")
+                    logger.info(
+                        f"[{chunk_label}] Calling Groq model={model}, attempt={attempt+1}..."
+                    )
                     response = client.chat.completions.create(
                         model=model,
                         max_tokens=1500,  # Reduced to stay under TPM limits
@@ -103,10 +107,10 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
                         timeout=httpx.Timeout(90.0, connect=10.0),
                         messages=[
                             {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": user_prompt}
-                        ]
+                            {"role": "user", "content": user_prompt},
+                        ],
                     )
-                    all_rate_limited = False 
+                    all_rate_limited = False
 
                     content = response.choices[0].message.content
                     raw_output = content.strip() if content else ""
@@ -123,14 +127,16 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
                     try:
                         data = json.loads(raw_output)
                     except json.JSONDecodeError:
-                        match = re.search(r'\[\s*\{.*\}\s*\]', raw_output, re.DOTALL)
+                        match = re.search(r"\[\s*\{.*\}\s*\]", raw_output, re.DOTALL)
                         if match:
                             try:
                                 json_str = match.group(0)
-                                if json_str.endswith(','): json_str = json_str[:-1] + ']'
-                                if not json_str.endswith(']'): json_str += ']'
+                                if json_str.endswith(","):
+                                    json_str = json_str[:-1] + "]"
+                                if not json_str.endswith("]"):
+                                    json_str += "]"
                                 data = json.loads(json_str)
-                            except:
+                            except Exception:
                                 continue
                         else:
                             continue
@@ -140,7 +146,8 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
 
                     added = 0
                     for item in data:
-                        if not isinstance(item, dict): continue
+                        if not isinstance(item, dict):
+                            continue
                         obj = _coerce_criterion(item)
                         if obj is not None and obj.id not in seen_codes:
                             chunk_criteria.append(obj)
@@ -153,27 +160,30 @@ def extract_criteria_from_text(tender_text: str) -> List[CriterionSchema]:
                 except RateLimitError:
                     logger.warning(f"[{chunk_label}] {model} rate limited.")
                     if attempt < max_retries - 1:
-                        time.sleep(retry_delay * (2 ** attempt))
+                        time.sleep(retry_delay * (2**attempt))
                     else:
-                        break 
+                        break
                 except Exception as e:
-                    all_rate_limited = False 
+                    all_rate_limited = False
                     logger.error(f"[{chunk_label}] Error with {model}: {e}")
                     break
 
         if all_rate_limited:
-            raise Exception("All Groq models are currently rate-limited. Please try again in a few minutes.")
-        
+            raise Exception(
+                "All Groq models are currently rate-limited. Please try again in a few minutes."
+            )
+
         return chunk_criteria
 
     if len(tender_text) <= SINGLE_CALL_LIMIT:
         all_criteria = _call_llm(tender_text, "FULL")
     else:
-        chunk_size = 10_000 
-        chunks = [tender_text[i:i + chunk_size] for i in range(0, len(tender_text), chunk_size)]
+        chunk_size = 10_000
+        chunks = [tender_text[i : i + chunk_size] for i in range(0, len(tender_text), chunk_size)]
         logger.info(f"Splitting into {len(chunks)} chunks of {chunk_size} chars.")
         for i, chunk in enumerate(chunks):
-            if i > 0: time.sleep(5)
+            if i > 0:
+                time.sleep(5)
             all_criteria.extend(_call_llm(chunk, f"CHUNK {i+1}/{len(chunks)}"))
 
     logger.info(f"Total criteria extracted: {len(all_criteria)}")

@@ -1,4 +1,4 @@
-SYSTEM_PROMPT = """You are a senior auditor specialized in government procurement verification for paramilitary forces (CRPF/BSF). 
+SYSTEM_PROMPT = """You are a senior auditor specialized in government procurement verification for paramilitary forces (CRPF/BSF).
 Your expertise is in validating bidder-submitted evidence against strict eligibility criteria.
 
 You are proficient in reading:
@@ -18,7 +18,7 @@ Critical rules:
 Return ONLY valid JSON. No preamble. No explanation. No markdown fences.
 """
 
-USER_PROMPT_TEMPLATE = """Find the value that satisfies the following eligibility criterion in the 
+USER_PROMPT_TEMPLATE = """Find the value that satisfies the following eligibility criterion in the
 bidder's documents below.
 
 CRITERION:

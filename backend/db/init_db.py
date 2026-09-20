@@ -1,9 +1,6 @@
-import os
-import sys
-
-# In a real scenario, this would use a psycopg2 connection to execute DDL, 
-# or use the Supabase CLI. Since the supabase-py client (REST) cannot execute 
-# raw DDL schema creation, this script provides the necessary SQL to run in 
+# In a real scenario, this would use a psycopg2 connection to execute DDL,
+# or use the Supabase CLI. Since the supabase-py client (REST) cannot execute
+# raw DDL schema creation, this script provides the necessary SQL to run in
 # the Supabase Dashboard SQL Editor.
 
 SCHEMA_SQL = """
@@ -89,8 +86,14 @@ CREATE TABLE IF NOT EXISTS verdicts (
 """
 
 if __name__ == "__main__":
-    print("To initialize the database, please run the following SQL script in your Supabase SQL Editor:")
-    print("-----------------------------------------------------------------------------------------")
+    print(
+        "To initialize the database, please run the following SQL script in your Supabase SQL Editor:"
+    )
+    print(
+        "-----------------------------------------------------------------------------------------"
+    )
     print(SCHEMA_SQL)
-    print("-----------------------------------------------------------------------------------------")
+    print(
+        "-----------------------------------------------------------------------------------------"
+    )
     print("Note: The supabase-py client uses the REST API and cannot execute raw DDL statements.")
