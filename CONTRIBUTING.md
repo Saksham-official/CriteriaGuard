@@ -137,9 +137,9 @@ pip install -r requirements-dev.txt
 > pip install pytest pytest-asyncio httpx ruff black mypy pre-commit
 > ```
 
-#### Step 2.4: Configure Environment Variables
+#### Step 2.4: Configure Environment Variables (Zero API Keys Required!)
 
-Create your local `.env` configuration from `.env.example`:
+CriteriaGuard includes an **offline contributor mock mode** so you can develop and test immediately without creating external accounts:
 
 - **Linux / macOS**:
   ```bash
@@ -150,24 +150,22 @@ Create your local `.env` configuration from `.env.example`:
   Copy-Item .env.example .env
   ```
 
-Open `.env` in your editor and configure the necessary credentials:
-
+In `.env`, keep the default mock settings:
 ```dotenv
-# Groq Cloud API Key for Llama 3 extraction models (Required for AI extraction)
-GROQ_API_KEY=gsk_your_groq_api_key_here
-
-# Supabase PostgreSQL Database credentials (Required for storage and audit trails)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-supabase-service-role-key-here
-SUPABASE_KEY=your-supabase-anon-key-here
-
-# Google Cloud Vision API Key (Optional: for cloud OCR fallback)
-GOOGLE_CLOUD_VISION_API_KEY=AIzaSy...
-
-# Application Security
-SECRET_KEY=dev-secret-key-change-in-production-criteria-guard
+# Contributor Mock Mode (No external keys needed!)
+MOCK_LLM=true
+USE_SAMPLE_DATA=true
 ENVIRONMENT=development
+
+# Optional Live Credentials (leave blank for local mock development)
+GROQ_API_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_KEY=
+SECRET_KEY=dev-secret-key-change-in-production-criteria-guard
 ```
+
+> [!TIP]
+> In mock mode, the backend boots up an in-memory database pre-seeded with sample tender clauses, bidder proposals, and SHA-256 audit logs. You can run all tests, query REST APIs, and use the React UI completely offline!
 
 #### Step 2.5: Run the Backend Server
 
@@ -331,19 +329,57 @@ pre-commit run --all-files
 
 We want contributing to CriteriaGuard to be transparent, organized, and rewarding.
 
-### Current Priority Tracks (CriteriaLens)
+### 🌟 15 Good First Issues (Choose Your First Task)
 
-If you are looking to make an immediate, high-impact contribution, we have three open workstreams in **Stage 1: Tender Intelligence (CriteriaLens)**:
+To make submitting your first PR as frictionless as possible, we have broken down our roadmap into **15 self-contained, testable issues**:
 
-1. **[Issue #2: Formal Schema Extraction](https://github.com/Saksham-official/CriteriaGuard/issues/2)**
-   - *Domain*: Backend (Python, Pydantic v2, FastAPI)
-   - *Goal*: Automatically map out financial, technical, and statutory compliance mandates from multi-page tender PDFs into a strict `CriterionSchema`.
-2. **[Issue #3: Linguistic Marker Analysis](https://github.com/Saksham-official/CriteriaGuard/issues/3)**
-   - *Domain*: NLP & Deontic Modality (Regex, Python)
-   - *Goal*: Classify legal obligation markers (`shall`, `must`, `mandatorily`) versus optional preferences (`should`, `preferred`, `desirable`) to prevent AI misinterpretation of disqualification rules.
-3. **[Issue #4: Approval Checkpoints](https://github.com/Saksham-official/CriteriaGuard/issues/4)**
-   - *Domain*: Frontend & Governance (React 18, Vite, FastAPI, SHA-256 Audit)
-   - *Goal*: Build an officer review interface to inspect, edit, and officially sign off on extracted criteria before bidder evaluations begin.
+| # | Title | Difficulty | Labels |
+| :-: | :--- | :---: | :--- |
+| **01** | Add sample tender JSON fixture for CriteriaLens | **Easy** | `good first issue`, `backend`, `testing` |
+| **02** | Add Pydantic validation for missing/invalid criteria fields | **Easy** | `good first issue`, `backend` |
+| **03** | Write tests for mandatory vs optional clause classification | **Medium** | `good first issue`, `nlp`, `testing` |
+| **04** | Add UI state for approved, rejected, and needs-review criteria | **Easy** | `good first issue`, `frontend` |
+| **05** | Improve accessibility (a11y) of officer approval dashboard | **Medium** | `a11y`, `frontend` |
+| **06** | Add empty and error states to verdict dashboard | **Easy** | `frontend`, `ux` |
+| **07** | Add API error responses with consistent HTTP status codes | **Medium** | `backend`, `api` |
+| **08** | Add unit tests for SHA-256 audit-chain append logic | **Medium** | `backend`, `security`, `testing` |
+| **09** | Add CSV export for evaluation results | **Medium** | `feature`, `backend` |
+| **10** | Add comprehensive documentation for criteria schema | **Easy** | `documentation`, `good first issue` |
+| **11** | Add screenshot/GIF visual walkthrough to README | **Easy** | `documentation`, `good first issue` |
+| **12** | Add GitHub issue and pull-request YAML templates | **Easy** | `documentation`, `ci` |
+| **13** | Add SECURITY.md with responsible disclosure instructions | **Easy** | `security`, `documentation` |
+| **14** | Add Docker Compose for frontend, backend, and Postgres | **Medium** | `devops`, `infrastructure` |
+| **15** | Add CI workflow for lint, type-check, and automated tests | **Easy** | `ci`, `good first issue` |
+
+👉 **Read the full acceptance criteria for each task in [.github/issues/CATALOG.md](.github/issues/CATALOG.md).**
+
+---
+
+### 🧩 Contributing a New Eligibility Rule (In 5 Minutes)
+
+CriteriaGuard features a pluggable rules engine located in `backend/rules/`. You can contribute new deterministic qualification rules without writing complex LLM prompts:
+
+1. Create a new rule file in `backend/rules/` inheriting from `EligibilityRule`:
+   ```python
+   from rules.base import EligibilityRule, RuleResult
+
+   class NetWorthRule(EligibilityRule):
+       rule_id = "positive_net_worth"
+       name = "Positive Net Worth Rule"
+       description = "Verifies bidder net worth is positive across financial years."
+
+       def applies_to(self, criterion: dict, evidence: dict) -> bool:
+           return "net worth" in str(criterion.get("text", "")).lower()
+
+       def evaluate(self, criterion: dict, evidence: dict) -> RuleResult:
+           if not evidence.get("value_found", False):
+               return RuleResult(status="Not Eligible", reason="Net worth certificate not submitted.")
+           # Deterministic evaluation logic
+           return RuleResult(status="Eligible", reason="Positive net worth verified.")
+   ```
+2. Add a unit test in `backend/tests/test_rules_engine.py`.
+3. Register your rule in `backend/rules/__init__.py`.
+4. Run `pytest backend/tests/` to confirm.
 
 ### Issue Labels Guide
 
@@ -358,10 +394,10 @@ Look for these tags on our [GitHub Issues](https://github.com/Saksham-official/C
 
 ### How to Claim an Issue
 
-1. Navigate to the issue you want to work on.
-2. Comment on the issue expressing interest (e.g., *"I'd like to work on this issue. Here is my approach..."*).
+1. Navigate to [.github/issues/CATALOG.md](.github/issues/CATALOG.md) or open GitHub Issues.
+2. Comment on an issue expressing interest (e.g., *"I'd like to work on this issue. Here is my approach..."*).
 3. A maintainer will assign the issue to you to prevent duplicated efforts.
-4. If you have questions about requirements or architecture, ask directly in the issue comments!
+4. Open your PR against `main` once tests pass!
 
 ---
 
