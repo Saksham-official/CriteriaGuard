@@ -1,157 +1,274 @@
 # 🛡️ CriteriaGuard: Governance-Grade AI for Procurement
-**Explainable AI Platform for Indian Government Tender Eligibility Evaluation**
+**Explainable AI & Deterministic Verification Platform for Government Tender Eligibility**
 
-[![Hackathon](https://img.shields.io/badge/Hackathon-AI%20for%20Bharat-blueviolet?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard)
-[![Governance](https://img.shields.io/badge/Governance-Grade-emerald?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard)
-[![Tech](https://img.shields.io/badge/Stack-FastAPI%20%7C%20React%20%7C%20Llama%203-blue?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard/pulls)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge)](CODE_OF_CONDUCT.md)
+[![CI Status](https://img.shields.io/badge/CI-Passing-brightgreen?style=for-the-badge&logo=githubactions)](.github/workflows/ci.yml)
+[![Mock Mode](https://img.shields.io/badge/Mock%20Mode-Zero%20API%20Keys%20Required-blueviolet?style=for-the-badge)](#-run-without-api-keys-mock-mode)
+[![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-15%20Available-orange?style=for-the-badge)](.github/issues/CATALOG.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-emerald?style=for-the-badge)](CONTRIBUTING.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![Security Policy](https://img.shields.io/badge/Security-Policy%20Active-critical?style=for-the-badge)](SECURITY.md)
 
-CriteriaGuard is a high-integrity, end-to-end platform designed to automate the manual, error-prone process of cross-checking bidder submissions against tender eligibility criteria. Built specifically for the complexities of **Indian Government Procurement**, it ensures every decision is **deterministic, traceable, and fully auditable**.
-
----
-
-## 🏛️ The Problem: The "Governance Gap"
-Every year, procurement committees spend days manually reviewing 100+ page tender documents and diverse bidder submissions (scanned certificates, typed PDFs, photographs). 
-- **The Risk**: A single missed condition leads to a wrongful award or a court challenge.
-- **The Transparency Gap**: Manual decisions are often untraceable, inviting RTI inquiries.
-- **The AI Trap**: Generic AI "black boxes" can hallucinate evidence, which is unacceptable for high-stakes government work.
+CriteriaGuard is an open-source, high-integrity platform engineered to automate the tedious, high-stakes process of cross-checking bidder proposals against tender eligibility criteria. Built for **public procurement transparency and civic accountability**, it guarantees that every evaluation verdict is **100% deterministic, source-cited, and cryptographically auditable**.
 
 ---
 
-## 🚀 The Solution: CriteriaGuard
-CriteriaGuard doesn't replace the procurement officer; it **augments their expertise** with a consistent, evidence-backed first-pass evaluation.
+## 📸 Interface Preview & Workflow
 
-### 🛡️ Core Pillars
-1. **Explainable AI (XAI)**: Every "Eligible" or "Not Eligible" verdict is backed by a direct citation (Document Name, Page Number, and Excerpt).
-2. **Deterministic Logic**: AI performs the *extraction*, but pure Python code (VerdictCore) performs the *evaluation*. No hallucinations in the final decision.
-3. **Tamper-Evident Logs**: SHA-256 chained audit logs ensure that no evaluation result can be quietly altered.
-4. **Human-in-the-Loop**: High-ambiguity clauses and borderline numeric values are automatically routed to a human officer for sign-off.
-
----
-
-## 🏗️ System Architecture (The 3-Stage Pipeline)
-
-```mermaid
-graph TD
-    A[Tender Document] -->|CriteriaLens| B(Stage 1: Tender Intelligence)
-    B -->|Structured Schema| C{Officer Approval}
-    C -->|Verified Criteria| D(Stage 2: Bidder Understanding)
-    E[Bidder Submissions] -->|DocProbe| D
-    D -->|Extracted Values + Citations| F(Stage 3: Verdict Engine)
-    F -->|Deterministic Rules| G[Audit-Ready Dashboard]
-    G --> H[Signed PDF Report]
-    
-    subgraph "The Intelligence Layer"
-        B1[Llama 3.3 70B via Groq]
-        B2[Ambiguity Resolver]
-        B1 --- B2
-    end
-    
-    subgraph "The Extraction Layer"
-        D1[Multi-Format OCR]
-        D2[Layout Preservation]
-        D1 --- D2
-    end
+```
+[ Tender Document (100+ pages) ] 
+               │
+               ▼
+   ╔═════════════════════════════════════════════════════════════════════╗
+   ║  STAGE 1: CriteriaLens (Tender Intelligence)                       ║
+   ║  - Extracts clauses into structured schema                          ║
+   ║  - Analyzes linguistic deontic markers ("shall" vs "should")        ║
+   ╚═════════════════════════════════════════════════════════════════════╝
+               │
+               ▼
+   ╔═════════════════════════════════════════════════════════════════════╗
+   ║  OFFICER CHECKPOINT (Human-in-the-Loop)                             ║
+   ║  Procurement Officer reviews, adjusts, & signs off criteria         ║
+   ╚═════════════════════════════════════════════════════════════════════╝
+               │
+               ▼
+   ╔═════════════════════════════════════════════════════════════════════╗
+   ║  STAGE 2: DocProbe (Bidder Understanding & Citations)               ║
+   ║  - Scans proposals, audited balance sheets, & certificates          ║
+   ║  - Anchors exact citations (Doc name, page number, excerpt)         ║
+   ╚═════════════════════════════════════════════════════════════════════╝
+               │
+               ▼
+   ╔═════════════════════════════════════════════════════════════════════╗
+   ║  STAGE 3: VerdictCore & RulesEngine (Deterministic Logic)           ║
+   ║  - Zero LLM hallucinations in decisions (Pure Python rules)         ║
+   ║  - Auto-flags borderline values (within 10%) for officer review     ║
+   ║  - Appends tamper-evident SHA-256 chained audit logs                ║
+   ╚═════════════════════════════════════════════════════════════════════╝
+               │
+               ▼
+[ Interactive Comparative Matrix ] ───► [ Signed PDF Governance Report ]
 ```
 
 ---
 
-## 🛠️ Features
+## 🏛️ Why This Matters: The "Governance Gap"
 
-### 1. Stage 1 — CriteriaLens (Tender Intelligence)
-- Extracts criteria into a formal schema: technical, financial, and compliance.
-- **Linguistic Marker Analysis**: Differentiates between mandatory ("shall", "must") and optional ("should", "preferred") clauses.
-- **Officer Checkpoint**: Provides a clean checkpoint for the procurement officer to approve the extracted requirements before evaluation begins.
+In public procurement (ministries, state departments, defense organizations, municipal corporations), evaluation committees manually review hundreds of pages across dozens of competing bidders:
 
-### 2. Stage 2 — DocProbe (Bidder Understanding)
-- Multi-format support: Direct PDF extraction, OCR for scanned documents, and Word (.docx) support.
-- **Contextual Anchoring**: Locates the exact paragraph and value, recording the source reference.
-- **Authenticity Scoring**: Evaluates the quality of the source document to flag low-confidence extractions.
+- **The Legal Risk**: A single overlooked mandatory requirement leads to wrongful disqualification, bidder litigation, or court injunctions halting vital infrastructure projects.
+- **The Transparency Gap**: Manual decisions are often undocumented and vulnerable to Right to Information (RTI) inquiries or accusations of favoritism.
+- **The AI Trap**: Generic "black-box" LLM wrappers frequently hallucinate financial figures or fail on nuanced legal language—an unacceptable failure mode in public administration.
 
-### 3. Stage 3 — VerdictCore (Explainable Verdicts)
-- **Zero-Hallucination Engine**: Final verdicts are computed via pure deterministic logic.
-- **Borderline Detection**: Automatically flags numeric values within 10% of a threshold (e.g., if turnover is ₹4.9Cr against a ₹5Cr requirement) for human review.
-- **Needs Review Queue**: Routes any low-confidence or ambiguous case to a human expert with a plain-English explanation of why the system is unsure.
-
-### 4. Integrity Suite
-- **Tamper-Evident Audit Trail**: Append-only log with SHA-256 chaining, suitable for formal record-keeping.
-- **Governance Reports**: Generates signed, audit-ready PDF reports with full citation tables for every bidder.
+**CriteriaGuard solves this** by cleanly separating **AI for text extraction** from **pure deterministic code for evaluation**. AI finds the facts; verifiable Python rules make the decision.
 
 ---
 
-## 💻 Technology Stack
+## 📖 Glossary
 
-- **Backend**: FastAPI (Python 3.11), Pydantic v2 (Schema Validation).
-- **CriteriaGuard Frontend**: React 18 (Vite), Glassmorphism UI, High-Performance WebGL (Aurora) animations.
-- **LLM Layer**: Llama 3.3 70B (Groq) for high-speed, accurate extraction.
-- **OCR Engine**: Tesseract & Cloud Vision Ensemble.
-- **Database**: PostgreSQL (Supabase) with SHA-256 Chaining.
-- **Deployment**: Containerized (Docker ready) for NIC/MeitY-approved infrastructure.
+Domain-specific procurement vocabulary can be intimidating. Here is a quick reference:
 
----
-
-## 🚦 Getting Started
-
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- Groq API Key (for Llama 3)
-- Supabase Credentials
-
-### Quick Start
-
-1. **Clone the Project**
-   ```bash
-   git clone https://github.com/Saksham-official/CriteriaGuard.git
-   cd CriteriaGuard
-   ```
-
-2. **Backend Setup**
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate # Windows: .\venv\Scripts\activate
-   pip install -r requirements.txt
-   # Setup .env with GROQ_API_KEY and SUPABASE_URL/KEY
-   python main.py
-   ```
-
-3. **CriteriaGuard Frontend Setup**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+| Term | Definition |
+| :--- | :--- |
+| **Tender (RFP)** | A formal government solicitation inviting suppliers to submit proposals for goods, works, or services. |
+| **Bidder** | An enterprise or joint venture submitting a formal proposal to win the contract. |
+| **Eligibility Criterion** | A mandatory or technical condition that a bidder must satisfy to avoid disqualification. |
+| **CriteriaLens** | Stage 1 engine: Extracts and structures eligibility clauses from tender documents into Pydantic models. |
+| **DocProbe** | Stage 2 engine: Locates supporting evidence and verbatim citations across bidder submissions. |
+| **VerdictCore** | Stage 3 engine: Evaluates extracted evidence against criteria using deterministic Python rules. Zero LLMs involved in final decisions. |
+| **Deontic Modality** | Legal distinction between binding obligations (*"shall"*, *"must"*) and advisory preferences (*"should"*, *"preferred"*). |
+| **Borderline Value** | Numeric evidence that falls within 10% of a threshold (e.g. ₹4.95 Cr vs ₹5 Cr requirement), automatically flagged for human officer sign-off. |
 
 ---
 
-## 🤝 Contributing & Community Roadmap
-We actively welcome contributions from the open-source and civic-tech community! Whether you are hardening adversarial document defenses, improving NLP criteria parsing, or refining the governance dashboard:
+## 🚀 Run Without API Keys (Mock Mode)
 
-### 🌱 Open Contributor Tracks: Stage 1 — Tender Intelligence (CriteriaLens)
+CriteriaGuard includes an **offline contributor mock mode**. You can explore the full UI, REST API, modular rules engine, and cryptographic audit workflow without creating a Groq account or setting up Supabase:
 
-We have opened 3 prioritized tracks for contributors to help advance **CriteriaLens**:
+```bash
+# 1. Clone repository
+git clone https://github.com/Saksham-official/CriteriaGuard.git
+cd CriteriaGuard
 
-| # | Track / Issue | Focus Area | Labels | Status |
-| :-: | :--- | :--- | :--- | :---: |
-| **[#2](https://github.com/Saksham-official/CriteriaGuard/issues/2)** | **[Formal Schema Extraction](https://github.com/Saksham-official/CriteriaGuard/issues/2)** | Multi-page RFP chunking, technical/financial/compliance mandates mapping, and Pydantic validation. | `backend`, `criteria-lens`, `enhancement` | **Help Wanted** |
-| **[#3](https://github.com/Saksham-official/CriteriaGuard/issues/3)** | **[Linguistic Marker Analysis](https://github.com/Saksham-official/CriteriaGuard/issues/3)** | Deontic modality engine identifying mandatory obligations ("shall", "must") vs optional preferences ("should", "preferred"). | `backend`, `nlp`, `criteria-lens` | **Help Wanted** |
-| **[#4](https://github.com/Saksham-official/CriteriaGuard/issues/4)** | **[Approval Checkpoints](https://github.com/Saksham-official/CriteriaGuard/issues/4)** | Interactive procurement officer review interface, edit baseline criteria, and lock SHA-256 audit checkpoint. | `frontend`, `backend`, `governance` | **Help Wanted** |
+# 2. Configure mock mode (No API keys needed!)
+cp .env.example .env
+export MOCK_LLM=true
+export USE_SAMPLE_DATA=true
 
-### 🚀 How to Contribute
+# 3. Launch Backend
+cd backend
+pip install -r requirements.txt
+pytest
+python main.py
+```
 
-1. Browse open issues on our [GitHub Issues Board](https://github.com/Saksham-official/CriteriaGuard/issues).
-2. Comment on an issue to let us know you'd like to work on it.
-3. Review our [Contributing Guide](CONTRIBUTING.md) for full local setup, linting, and testing workflows.
-4. Review our community [Code of Conduct](CODE_OF_CONDUCT.md).
-5. Submit a Pull Request referencing the issue (e.g., `Closes #2`). All PRs are automatically verified via [GitHub Actions CI](.github/workflows/ci.yml).
+In a second terminal window, launch the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Visit `http://localhost:5173` to explore the complete platform with pre-seeded tender and bidder data!
 
 ---
 
-## 📜 Governance Commitment
-CriteriaGuard is designed to be **domain-agnostic**. Whether it is defense (CRPF), infrastructure, or health, the system adapts to any tender structure. It sits *behind* the existing process, making it faster, more consistent, and 100% traceable.
+## 📂 Project Structure
+
+```text
+CriteriaGuard/
+├── .github/
+│   ├── ISSUE_TEMPLATE/        # Structured GitHub Issue Forms (bug, feature)
+│   ├── issues/                # 15 beginner-friendly good first issues
+│   ├── workflows/             # GitHub Actions CI automated pipeline
+│   └── PULL_REQUEST_TEMPLATE  # Governance and quality checklist
+├── backend/
+│   ├── engines/               # Core pipeline engines (CriteriaLens, DocProbe, VerdictCore)
+│   ├── rules/                 # Modular, extensible deterministic rules engine
+│   │   ├── base.py            # EligibilityRule base class & RuleResult schema
+│   │   ├── numeric_threshold.py    # Greater/less than, count & borderline checks
+│   │   ├── mandatory_document.py   # Required certificates & compliance checklist
+│   │   └── experience_requirement.py # Technical track record & years experience
+│   ├── routers/               # FastAPI endpoints (tenders, bidders, verdicts, audit)
+│   ├── services/              # SHA-256 audit log, PDF/DOCX parsing, OCR
+│   ├── models/                # Pydantic schemas (CriterionSchema, ExtractionSchema)
+│   ├── db/                    # Supabase client + In-memory Mock DB
+│   └── tests/
+│       ├── fixtures/          # Sample tender & bidder JSON fixtures
+│       ├── test_numeric_threshold.py
+│       ├── test_rules_engine.py
+│       ├── test_audit_chain.py
+│       └── test_mock_pipeline.py
+├── frontend/                  # React 18 (Vite) Glassmorphism dashboard
+│   └── src/pages/             # Upload, CriteriaReview, ComparativeMatrix, AuditTrail
+├── docker-compose.yml         # Containerized local environment
+├── CONTRIBUTING.md            # Comprehensive contributor guidelines
+├── SECURITY.md                # Vulnerability disclosure & scope
+└── README.md
+```
 
 ---
 
-*“Built for the realities of Indian Government Procurement—where accountability meets intelligence.”* 🛡️
+## 🧩 Adding a Custom Eligibility Rule (In 5 Minutes)
+
+You don't need to know LLMs or OCR to contribute! CriteriaGuard exposes an easy extension point:
+
+```python
+from rules import EligibilityRule, RuleResult, default_engine
+
+class ConsortiumMemberRule(EligibilityRule):
+    rule_id = "consortium_member_limit"
+    name = "Consortium Member Limit Rule"
+    description = "Joint ventures must have at most 3 consortium partners."
+
+    def applies_to(self, criterion: dict, evidence: dict) -> bool:
+        return "consortium" in str(criterion.get("text", "")).lower()
+
+    def evaluate(self, criterion: dict, evidence: dict) -> RuleResult:
+        count = evidence.get("extracted_value_numeric", 0)
+        if count > 3:
+            return RuleResult(
+                status="Not Eligible",
+                reason=f"Consortium has {count} members, exceeding maximum allowed limit of 3."
+            )
+        return RuleResult(
+            status="Eligible",
+            reason=f"Consortium has {count} members (within limit <= 3)."
+        )
+
+# Register into the live evaluation pipeline
+default_engine.register_rule(ConsortiumMemberRule())
+```
+
+Add your rule in `backend/rules/`, write a unit test in `backend/tests/`, and submit a PR!
+
+---
+
+## 🌱 Good First Issues (Claim Yours!)
+
+We have converted large tracks into **15 self-contained, testable issues**:
+
+| # | Issue Title | Labels | Difficulty | Ready to Work |
+| :-: | :--- | :--- | :---: | :---: |
+| **01** | Add sample tender JSON fixture for CriteriaLens | `good first issue`, `backend`, `testing` | **Easy** | [View](.github/issues/CATALOG.md#issue-01) |
+| **02** | Add Pydantic validation for missing/invalid criteria fields | `good first issue`, `backend` | **Easy** | [View](.github/issues/CATALOG.md#issue-02) |
+| **03** | Write tests for mandatory vs optional clause classification | `good first issue`, `nlp`, `testing` | **Medium** | [View](.github/issues/CATALOG.md#issue-03) |
+| **04** | Add UI state for approved, rejected, and needs-review criteria | `good first issue`, `frontend` | **Easy** | [View](.github/issues/CATALOG.md#issue-04) |
+| **05** | Improve accessibility (a11y) of officer approval dashboard | `a11y`, `frontend` | **Medium** | [View](.github/issues/CATALOG.md#issue-05) |
+| **06** | Add empty and error states to verdict dashboard | `frontend`, `ux` | **Easy** | [View](.github/issues/CATALOG.md#issue-06) |
+| **07** | Add API error responses with consistent HTTP status codes | `backend`, `api` | **Medium** | [View](.github/issues/CATALOG.md#issue-07) |
+| **08** | Add unit tests for SHA-256 audit-chain append logic | `backend`, `security`, `testing` | **Medium** | [View](.github/issues/CATALOG.md#issue-08) |
+| **09** | Add CSV export for evaluation results | `feature`, `backend` | **Medium** | [View](.github/issues/CATALOG.md#issue-09) |
+| **10** | Add comprehensive documentation for criteria schema | `documentation`, `good first issue` | **Easy** | [View](.github/issues/CATALOG.md#issue-10) |
+| **11** | Add screenshot/GIF visual walkthrough to README | `documentation`, `good first issue` | **Easy** | [View](.github/issues/CATALOG.md#issue-11) |
+| **12** | Add GitHub issue and pull-request YAML templates | `documentation`, `ci` | **Easy** | [View](.github/issues/CATALOG.md#issue-12) |
+| **13** | Add SECURITY.md with responsible disclosure instructions | `security`, `documentation` | **Easy** | [View](.github/issues/CATALOG.md#issue-13) |
+| **14** | Add Docker Compose for frontend, backend, and Postgres | `devops`, `infrastructure` | **Medium** | [View](.github/issues/CATALOG.md#issue-14) |
+| **15** | Add CI workflow for lint, type-check, and automated tests | `ci`, `good first issue` | **Easy** | [View](.github/issues/CATALOG.md#issue-15) |
+
+👉 Read the full issue specifications and acceptance criteria in [.github/issues/CATALOG.md](.github/issues/CATALOG.md).
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+Run the test suite locally with pytest:
+
+```bash
+cd backend
+pytest -v
+```
+
+Run code formatting and static type checking:
+
+```bash
+# Linting & Formatting
+ruff check .
+black --check .
+
+# Static type analysis
+mypy .
+```
+
+All pull requests run automated checks via [GitHub Actions CI](.github/workflows/ci.yml).
+
+---
+
+## 🐳 Docker Quickstart
+
+To run the entire stack with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- API Documentation: `http://localhost:8000/docs`
+
+---
+
+## 🗺️ Roadmap & Future Capabilities
+
+- [x] Contributor Mock Mode & Offline Seeded Pipeline
+- [x] Modular Extensible Rules Engine (`backend/rules/`)
+- [x] SHA-256 Chained Audit Trail & Verification Endpoint
+- [ ] Multi-lingual OCR & Indic Language Translation (Hindi, Tamil, Marathi)
+- [ ] Exportable CSV / Excel Comparative Evaluation Matrix
+- [ ] Automated GeM (Government e-Marketplace) API integration
+- [ ] WCAG AA Full Accessibility Compliance & Dark/Light Theme Switching
+
+---
+
+## 🤝 Community & Recognition
+
+We love our contributors! Every approved PR gets:
+1. Listed in the contributor hall of fame.
+2. A shoutout in our community updates and release notes.
+3. Review feedback within 24 hours.
+
+Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a pull request.
+
+---
+
+*“Built for the realities of Public Procurement—where accountability meets intelligence.”* 🛡️

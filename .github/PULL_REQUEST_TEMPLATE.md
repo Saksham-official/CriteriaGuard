@@ -22,6 +22,7 @@ CriteriaGuard is engineered for Indian Government Procurement governance. Please
 
 ### 🧪 Testing & Quality Checks
 - [ ] Backend tests added/updated and passing (`pytest backend/tests/`)
+- [ ] Verified changes run cleanly in mock mode without requiring external API keys (`MOCK_LLM=true`)
 - [ ] Code formatted with Black & Ruff (`pre-commit run --all-files` or `ruff check .`)
 - [ ] Type hints validated with MyPy (`mypy backend/`)
 - [ ] Frontend builds cleanly without console errors (`npm run build` inside `frontend/`)
