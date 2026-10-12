@@ -1,0 +1,49 @@
+name: 💡 Feature Proposal
+description: Propose an idea, deterministic rule, or architectural improvement for CriteriaGuard.
+title: "[FEATURE]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature! CriteriaGuard welcomes ideas that enhance determinism, explainability, accessibility, or developer onboarding.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Area / Component
+      description: Which part of the system does this feature relate to?
+      options:
+        - "Rules Engine (backend/rules/)"
+        - "Stage 1: CriteriaLens (Tender Parsing & Schema)"
+        - "Stage 2: DocProbe (Bidder Extraction & OCR)"
+        - "Stage 3: VerdictCore (Deterministic Evaluation)"
+        - "Audit Trail & Cryptographic Security (SHA-256)"
+        - "Officer Review Dashboard (React Frontend)"
+        - "Developer Experience, Mock Mode, or CI/CD"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement / Context
+      description: Is your feature request related to a specific problem or civic-tech procurement need?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution / Design
+      description: Describe your proposed architecture, API, or rule behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you considered.
+  - type: checkboxes
+    id: willing_to_contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to submit a pull request implementing this feature!
