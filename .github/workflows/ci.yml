@@ -45,9 +45,9 @@ jobs:
 
       - name: Run Pytest
         env:
-          GROQ_API_KEY: "mock_test_key"
-          SUPABASE_URL: "https://mock.supabase.co"
-          SUPABASE_KEY: "mock_key"
+          MOCK_LLM: "true"
+          USE_SAMPLE_DATA: "true"
+          ENVIRONMENT: "development"
         run: |
           pytest tests/ -v
 
