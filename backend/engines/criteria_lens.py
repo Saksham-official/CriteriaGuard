@@ -3,7 +3,6 @@ import os
 import re
 import time
 
-import httpx
 from groq import Groq, RateLimitError
 from pydantic import ValidationError
 
@@ -11,8 +10,13 @@ from models.criterion import CriterionSchema
 from prompts.criteria_extraction import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from utils.logger import logger
 
-# Ensure groq client is initialized
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# Initialize Groq client safely (None if not provided)
+client = None
+if os.getenv("GROQ_API_KEY"):
+    try:
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    except Exception as e:
+        logger.warning(f"Failed to initialize Groq client: {e}")
 
 
 def _coerce_criterion(item: dict) -> CriterionSchema | None:
@@ -65,16 +69,70 @@ def _coerce_criterion(item: dict) -> CriterionSchema | None:
         return None
 
 
+def _get_mock_criteria(tender_text: str) -> list[CriterionSchema]:
+    """Return deterministic criteria from fixture or fallback for offline development."""
+    logger.info("Using deterministic mock extraction (MOCK_LLM=true / offline mode)")
+    fixture_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "tests",
+        "fixtures",
+        "sample_tender.json",
+    )
+    if os.path.exists(fixture_path):
+        try:
+            with open(fixture_path, encoding="utf-8") as f:
+                data = json.load(f)
+                return [CriterionSchema(**c) for c in data.get("criteria", [])]
+        except Exception as e:
+            logger.warning(f"Could not load sample_tender.json fixture: {e}")
+
+    # Fallback criteria
+    fallback = [
+        {
+            "id": "C001",
+            "text": "The bidder shall have an average annual turnover of at least 50 Crores INR over the last three financial years.",
+            "category": "financial",
+            "mandatory": True,
+            "mandatory_confidence": "high",
+            "threshold": {
+                "value": 50.0,
+                "unit": "crore",
+                "period": "last_3_years",
+                "comparison": "greater_than_equal",
+            },
+            "evidence_documents": ["Audited Balance Sheets"],
+            "source_clause": "Clause 4.1",
+            "source_page": 1,
+        },
+        {
+            "id": "C002",
+            "text": "The bidder must possess a valid ISO 9001:2015 certification.",
+            "category": "compliance",
+            "mandatory": True,
+            "mandatory_confidence": "high",
+            "threshold": None,
+            "evidence_documents": ["ISO Certificate"],
+            "source_clause": "Clause 4.3",
+            "source_page": 2,
+        },
+    ]
+    return [CriterionSchema(**c) for c in fallback]
+
+
 def extract_criteria_from_text(tender_text: str) -> list[CriterionSchema]:
     """
-    Extract eligibility criteria from tender text using Groq LLM.
-    Strategy: Smaller chunks and lower max_tokens to stay within TPM limits.
+    Extract eligibility criteria from tender text using Groq LLM,
+    or deterministic mock engine if MOCK_LLM is enabled or no API key is present.
     """
-    # Reduced from 50k/24k to 12k to stay within free-tier TPM limits (often 6k-10k).
-    # 12k chars is ~3k tokens. Plus prompt and max_tokens, it should fit in ~5k tokens.
-    SINGLE_CALL_LIMIT = 12_000
+    is_mock = (
+        os.getenv("MOCK_LLM", "").lower() in ("true", "1")
+        or not os.getenv("GROQ_API_KEY")
+        or client is None
+    )
+    if is_mock:
+        return _get_mock_criteria(tender_text)
 
-    # Live Groq models as of May 2026.
+    SINGLE_CALL_LIMIT = 12_000
     MODELS = [
         "meta-llama/llama-4-scout-17b-16e-instruct",
         "llama-3.3-70b-versatile",
@@ -98,54 +156,43 @@ def extract_criteria_from_text(tender_text: str) -> list[CriterionSchema]:
             for attempt in range(max_retries):
                 try:
                     logger.info(
-                        f"[{chunk_label}] Calling Groq model={model}, attempt={attempt+1}..."
+                        f"[{chunk_label}] Calling Groq model={model}, attempt={attempt + 1}..."
                     )
+                    assert client is not None
                     response = client.chat.completions.create(
                         model=model,
-                        max_tokens=1500,  # Reduced to stay under TPM limits
-                        temperature=0,
-                        timeout=httpx.Timeout(90.0, connect=10.0),
                         messages=[
                             {"role": "system", "content": SYSTEM_PROMPT},
                             {"role": "user", "content": user_prompt},
                         ],
+                        temperature=0.1,
+                        max_tokens=4000,
                     )
                     all_rate_limited = False
 
-                    content = response.choices[0].message.content
-                    raw_output = content.strip() if content else ""
+                    raw_content = response.choices[0].message.content or ""
+                    cleaned = raw_content.strip()
+                    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+                    cleaned = re.sub(r"\s*```$", "", cleaned)
 
-                    if not raw_output:
-                        continue
-
-                    # Strip markdown code fences
-                    if "```json" in raw_output:
-                        raw_output = raw_output.split("```json")[1].split("```")[0].strip()
-                    elif "```" in raw_output:
-                        raw_output = raw_output.split("```")[1].split("```")[0].strip()
+                    match = re.search(r"\[.*\]", cleaned, re.DOTALL)
+                    if match:
+                        cleaned = match.group(0)
 
                     try:
-                        data = json.loads(raw_output)
-                    except json.JSONDecodeError:
-                        match = re.search(r"\[\s*\{.*\}\s*\]", raw_output, re.DOTALL)
-                        if match:
-                            try:
-                                json_str = match.group(0)
-                                if json_str.endswith(","):
-                                    json_str = json_str[:-1] + "]"
-                                if not json_str.endswith("]"):
-                                    json_str += "]"
-                                data = json.loads(json_str)
-                            except Exception:
-                                continue
-                        else:
-                            continue
+                        parsed = json.loads(cleaned)
+                    except json.JSONDecodeError as jde:
+                        logger.warning(f"[{chunk_label}] JSON parse error from {model}: {jde}")
+                        continue
 
-                    if not isinstance(data, list):
-                        data = [data]
+                    if not isinstance(parsed, list):
+                        logger.warning(
+                            f"[{chunk_label}] Expected JSON list from {model}, got {type(parsed)}"
+                        )
+                        continue
 
                     added = 0
-                    for item in data:
+                    for item in parsed:
                         if not isinstance(item, dict):
                             continue
                         obj = _coerce_criterion(item)
@@ -184,7 +231,7 @@ def extract_criteria_from_text(tender_text: str) -> list[CriterionSchema]:
         for i, chunk in enumerate(chunks):
             if i > 0:
                 time.sleep(5)
-            all_criteria.extend(_call_llm(chunk, f"CHUNK {i+1}/{len(chunks)}"))
+            all_criteria.extend(_call_llm(chunk, f"CHUNK {i + 1}/{len(chunks)}"))
 
     logger.info(f"Total criteria extracted: {len(all_criteria)}")
     return all_criteria

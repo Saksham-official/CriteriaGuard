@@ -165,7 +165,7 @@ def _scan_pdf_invisible_layers(doc: fitz.Document, report: dict) -> dict:
                         if size < 3.0:
                             report["injection_detected"] = True
                             report["injection_details"].append(
-                                f"Page {i+1}: Obfuscated micro-font size ({size:.1f}pt) detected containing text snippet: '{text[:30]}...'"
+                                f"Page {i + 1}: Obfuscated micro-font size ({size:.1f}pt) detected containing text snippet: '{text[:30]}...'"
                             )
 
                         # 2. Invisible White Text Detection
@@ -174,7 +174,7 @@ def _scan_pdf_invisible_layers(doc: fitz.Document, report: dict) -> dict:
                         if r > 245 and g > 245 and b > 245:
                             report["injection_detected"] = True
                             report["injection_details"].append(
-                                f"Page {i+1}: Invisible white text block detected containing: '{text[:40]}...'"
+                                f"Page {i + 1}: Invisible white text block detected containing: '{text[:40]}...'"
                             )
     except Exception as e:
         logger.warning(f"SecurityShield: Detailed span layout scanning failed: {e}")
