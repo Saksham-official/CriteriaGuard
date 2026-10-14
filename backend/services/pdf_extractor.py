@@ -47,7 +47,7 @@ def extract_text_from_pdf(file_path: str, enable_ocr: bool = True) -> list[DocPa
 
             # Only OCR if text is truly absent (scanned page) and OCR is enabled
             if enable_ocr and (not text or len(text) < SCAN_THRESHOLD):
-                logger.info(f"Page {i+1} appears to be a scan — triggering OCR...")
+                logger.info(f"Page {i + 1} appears to be a scan — triggering OCR...")
                 temp_image = f"temp_{uuid.uuid4()}.png"
                 try:
                     pix = page.get_pixmap(dpi=150)  # lower DPI = faster, still readable
@@ -56,7 +56,7 @@ def extract_text_from_pdf(file_path: str, enable_ocr: bool = True) -> list[DocPa
                     if ocr_res.text:
                         text = ocr_res.text
                 except Exception as ocr_err:
-                    logger.warning(f"OCR failed for page {i+1}: {ocr_err}")
+                    logger.warning(f"OCR failed for page {i + 1}: {ocr_err}")
                 finally:
                     if os.path.exists(temp_image):
                         os.remove(temp_image)

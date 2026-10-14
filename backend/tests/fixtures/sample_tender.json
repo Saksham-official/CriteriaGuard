@@ -1,0 +1,89 @@
+{
+  "tender_id": "T-2026-GIEP-001",
+  "title": "Global Infrastructure Expansion Project 2026",
+  "authority": "Ministry of Urban Development",
+  "issued_date": "2026-03-15",
+  "criteria": [
+    {
+      "id": "C001",
+      "text": "The bidder shall have an average annual turnover of at least $50,000,000 (Fifty Million USD) over the last three financial years (2023, 2024, 2025).",
+      "category": "financial",
+      "mandatory": true,
+      "mandatory_confidence": "high",
+      "threshold": {
+        "value": 50000000.0,
+        "unit": "USD",
+        "period": "last_3_years",
+        "comparison": "greater_than_equal"
+      },
+      "evidence_documents": ["Audited Balance Sheets", "Profit & Loss Statements"],
+      "source_clause": "Clause 4.1(a)",
+      "source_page": 4
+    },
+    {
+      "id": "C002",
+      "text": "The bidder's net worth should be positive in each of the last three financial years.",
+      "category": "financial",
+      "mandatory": true,
+      "mandatory_confidence": "high",
+      "threshold": null,
+      "evidence_documents": ["CA Net Worth Certificate"],
+      "source_clause": "Clause 4.1(b)",
+      "source_page": 4
+    },
+    {
+      "id": "C003",
+      "text": "The bidder must have successfully completed at least three (3) infrastructure projects of value exceeding $20,000,000 each within the last seven (7) years.",
+      "category": "technical",
+      "mandatory": true,
+      "mandatory_confidence": "high",
+      "threshold": {
+        "value": 3.0,
+        "unit": "projects",
+        "period": "last_7_years",
+        "comparison": "at_least_count"
+      },
+      "evidence_documents": ["Client Completion Certificates"],
+      "source_clause": "Clause 4.2(a)",
+      "source_page": 5
+    },
+    {
+      "id": "C004",
+      "text": "The Project Manager must have at least 15 years of experience in civil engineering, with a minimum of 5 years specifically in urban infrastructure.",
+      "category": "technical",
+      "mandatory": true,
+      "mandatory_confidence": "high",
+      "threshold": {
+        "value": 15.0,
+        "unit": "years",
+        "period": "career",
+        "comparison": "greater_than_equal"
+      },
+      "evidence_documents": ["Detailed CV", "PMP / Professional Engineering Certification"],
+      "source_clause": "Clause 4.2(b)",
+      "source_page": 5
+    },
+    {
+      "id": "C005",
+      "text": "The bidder shall possess a valid ISO 9001:2015 certification for Quality Management Systems.",
+      "category": "compliance",
+      "mandatory": true,
+      "mandatory_confidence": "high",
+      "threshold": null,
+      "evidence_documents": ["ISO 9001:2015 Certificate"],
+      "source_clause": "Clause 4.3(a)",
+      "source_page": 6
+    },
+    {
+      "id": "C006",
+      "text": "Bidders should ideally maintain an incident frequency rate below 0.5. Zero fatalities in the last 24 months preferred.",
+      "category": "compliance",
+      "mandatory": false,
+      "mandatory_confidence": "ambiguous",
+      "threshold": null,
+      "evidence_documents": ["HSE Audit Report"],
+      "source_clause": "Clause 4.3(b)",
+      "source_page": 6
+    }
+  ]
+}

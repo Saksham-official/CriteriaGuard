@@ -13,16 +13,24 @@ class OCRResult:
         self.quality = quality
 
 
-def encode_image(image_path):
+def encode_image(image_path: str) -> str:
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 def extract_text_from_image(image_path: str) -> OCRResult:
     """
-    Uses Groq's Llama 3.2 Vision model to extract text from images.
-    This is completely free and leverages the existing Groq API key!
+    Extract text from images using Groq Vision or offline mock engine.
     """
+    is_mock = os.getenv("MOCK_LLM", "").lower() in ("true", "1") or not os.getenv("GROQ_API_KEY")
+    if is_mock:
+        logger.info("OCR running in mock offline mode.")
+        return OCRResult(
+            text="[MOCK OCR TEXT] Audited Financial Statements and ISO 9001:2015 Certificate.",
+            confidence=0.95,
+            quality="high",
+        )
+
     try:
         client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         base64_image = encode_image(image_path)

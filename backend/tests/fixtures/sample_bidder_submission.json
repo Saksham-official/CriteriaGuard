@@ -1,0 +1,122 @@
+{
+  "tender_id": "T-2026-GIEP-001",
+  "submissions": [
+    {
+      "bidder_id": "bidder-01-builders-corp",
+      "bidder_name": "Builders Corp International",
+      "expected_overall_verdict": "Eligible",
+      "extractions": {
+        "C001": {
+          "criterion_id": "C001",
+          "value_found": true,
+          "extracted_value": "$52,166,667",
+          "extracted_value_numeric": 52166667.0,
+          "source_document": "Financial_Statement_2025.pdf",
+          "source_page": 2,
+          "source_excerpt": "Average annual turnover over FY 2023-2025 stands at $52,166,667.",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.98
+        },
+        "C002": {
+          "criterion_id": "C002",
+          "value_found": true,
+          "extracted_value": "Positive net worth ($12M)",
+          "source_document": "CA_NetWorth_Annex_A.pdf",
+          "source_page": 1,
+          "source_excerpt": "Builders Corp International has maintained a positive net worth of approximately $12M.",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.95
+        },
+        "C003": {
+          "criterion_id": "C003",
+          "value_found": true,
+          "extracted_value": "4 completed projects exceeding $20M",
+          "extracted_value_numeric": 4.0,
+          "source_document": "Track_Record.pdf",
+          "source_page": 3,
+          "source_excerpt": "Metro Rail Phase 1 ($25M), Smart City Hub ($30M), Airport Terminal Ext ($22M).",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.94
+        },
+        "C004": {
+          "criterion_id": "C004",
+          "value_found": true,
+          "extracted_value": "18 Years",
+          "extracted_value_numeric": 18.0,
+          "source_document": "Personnel_CV_JohnDoe.pdf",
+          "source_page": 1,
+          "source_excerpt": "Project Manager: Mr. John Doe - 18 Years in Civil Engineering, 6 Years Urban Infra.",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.96
+        },
+        "C005": {
+          "criterion_id": "C005",
+          "value_found": true,
+          "extracted_value": "ISO 9001:2015 certified (Certificate No: QMS-2026-9901)",
+          "source_document": "ISO_Certificate.pdf",
+          "source_page": 1,
+          "source_excerpt": "ISO 9001:2015 certification for Quality Management Systems, valid until 2028.",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.99
+        },
+        "C006": {
+          "criterion_id": "C006",
+          "value_found": false,
+          "not_found_reason": "not_stated",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.90
+        }
+      }
+    },
+    {
+      "bidder_id": "bidder-02-skybound",
+      "bidder_name": "SkyBound Drones Pvt. Ltd.",
+      "expected_overall_verdict": "Not Eligible",
+      "extractions": {
+        "C001": {
+          "criterion_id": "C001",
+          "value_found": true,
+          "extracted_value": "$35,000,000",
+          "extracted_value_numeric": 35000000.0,
+          "source_document": "Audit_Report.pdf",
+          "source_page": 1,
+          "source_excerpt": "Average annual turnover: 35 Crores INR / $35M over last 3 years.",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.96
+        }
+      }
+    },
+    {
+      "bidder_id": "bidder-03-marginal",
+      "bidder_name": "Marginal Aviations",
+      "expected_overall_verdict": "Needs Review",
+      "extractions": {
+        "C001": {
+          "criterion_id": "C001",
+          "value_found": true,
+          "extracted_value": "$49,500,000",
+          "extracted_value_numeric": 49500000.0,
+          "source_document": "Balance_Sheet_2025.pdf",
+          "source_page": 2,
+          "source_excerpt": "Three-year audited turnover average: $49,500,000.",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.95
+        }
+      }
+    },
+    {
+      "bidder_id": "bidder-04-precision",
+      "bidder_name": "Precision Airworks",
+      "expected_overall_verdict": "Not Eligible",
+      "extractions": {
+        "C005": {
+          "criterion_id": "C005",
+          "value_found": false,
+          "not_found_reason": "document_missing",
+          "ocr_quality": "high",
+          "extraction_confidence": 0.92
+        }
+      }
+    }
+  ]
+}
