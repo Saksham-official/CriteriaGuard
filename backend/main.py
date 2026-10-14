@@ -105,9 +105,11 @@ async def health_check():
     return {
         "status": "ok",
         "message": "CriteriaGuard API is running.",
-        "mode": "mock"
-        if (os.getenv("MOCK_LLM", "").lower() in ("true", "1") or not os.getenv("GROQ_API_KEY"))
-        else "production",
+        "mode": (
+            "mock"
+            if (os.getenv("MOCK_LLM", "").lower() in ("true", "1") or not os.getenv("GROQ_API_KEY"))
+            else "production"
+        ),
     }
 
 
