@@ -5,7 +5,7 @@ class ExtractionSchema(BaseModel):
     criterion_id: str
     value_found: bool
     not_found_reason: str | None = Field(
-        None, description="document_missing | value_unreadable | not_stated | null"
+        default=None, description="document_missing | value_unreadable | not_stated | null"
     )
     extracted_value: str | None = None
     extracted_value_numeric: float | None = None

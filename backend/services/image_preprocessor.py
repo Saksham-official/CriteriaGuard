@@ -12,19 +12,19 @@ def preprocess_image(image_path: str, output_path: str) -> str:
     In a full production setup, deskewing and adaptive thresholding would be added.
     """
     try:
-        with Image.open(image_path) as img:
+        with Image.open(image_path) as raw_img:
             # 1. Convert to grayscale
-            img = img.convert("L")
+            processed: Image.Image = raw_img.convert("L")
 
             # 2. Contrast Enhancement
-            enhancer = ImageEnhance.Contrast(img)
-            img = enhancer.enhance(2.0)
+            enhancer = ImageEnhance.Contrast(processed)
+            processed = enhancer.enhance(2.0)
 
             # 3. Sharpening to remove blur and noise
-            img = img.filter(ImageFilter.SHARPEN)
+            processed = processed.filter(ImageFilter.SHARPEN)
 
             # Save the processed image
-            img.save(output_path, format="PNG")
+            processed.save(output_path, format="PNG")
 
         return output_path
     except Exception as e:

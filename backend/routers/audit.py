@@ -20,7 +20,7 @@ async def get_audit_trail():
         valid = True
         verification_results = []
         for raw_log in logs:
-            log: dict[str, Any] = raw_log  # type: ignore[assignment]
+            log: dict[str, Any] = dict(raw_log)
 
             # Normalize timestamp for stable verification (YYYY-MM-DDTHH:MM:SS)
             raw_ts = str(log["timestamp"])

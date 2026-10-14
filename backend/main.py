@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
 
     if is_mock:
         logger.info("=" * 64)
-        logger.info("🛡️  CRITERIAGUARD CONTRIBUTOR / MOCK MODE ACTIVE")
+        logger.info("[CriteriaGuard] CONTRIBUTOR / MOCK MODE ACTIVE")
         logger.info("Zero external API keys or cloud credentials required!")
         logger.info("- Extraction Engine : Deterministic mock mode (MOCK_LLM=true)")
         logger.info("- Database Layer    : In-memory store pre-seeded (USE_SAMPLE_DATA=true)")

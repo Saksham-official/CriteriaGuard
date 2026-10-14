@@ -116,7 +116,7 @@ def _get_mock_criteria(tender_text: str) -> list[CriterionSchema]:
             "source_page": 2,
         },
     ]
-    return [CriterionSchema(**c) for c in fallback]
+    return [CriterionSchema.model_validate(c) for c in fallback]
 
 
 def extract_criteria_from_text(tender_text: str) -> list[CriterionSchema]:

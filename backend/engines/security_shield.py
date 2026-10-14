@@ -1,5 +1,6 @@
 import os
 import re
+from typing import Any
 
 import fitz  # PyMuPDF
 from PIL import Image
@@ -19,7 +20,7 @@ def scan_document_for_security(file_path: str, filename: str) -> dict:
     """
     logger.info(f"SecurityShield: Starting scanning for {filename}...")
 
-    report = {
+    report: dict[str, Any] = {
         "is_safe": True,
         "tampering_detected": False,
         "injection_detected": False,

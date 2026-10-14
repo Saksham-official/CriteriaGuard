@@ -69,7 +69,7 @@ def process_bidder_documents(
 
         # 2. Extract text from all documents
         all_docs_text = []
-        temp_files_to_cleanup = []
+        temp_files_to_cleanup: list[str] = []
 
         manager.broadcast(
             bidder_id,
@@ -81,7 +81,7 @@ def process_bidder_documents(
         )
 
         # Define aggregate security report
-        security_report = {
+        security_report: dict[str, Any] = {
             "is_safe": True,
             "tampering_detected": False,
             "injection_detected": False,

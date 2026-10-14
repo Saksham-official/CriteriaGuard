@@ -3,7 +3,13 @@ import sys
 
 
 def setup_logging():
-    # Configure logging for cloud environment (stdout only)
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+    # Configure logging for cloud and local environment (stdout only)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",

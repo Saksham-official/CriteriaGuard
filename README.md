@@ -3,7 +3,7 @@
 
 [![CI Status](https://img.shields.io/badge/CI-Passing-brightgreen?style=for-the-badge&logo=githubactions)](.github/workflows/ci.yml)
 [![Mock Mode](https://img.shields.io/badge/Mock%20Mode-Zero%20API%20Keys%20Required-blueviolet?style=for-the-badge)](#-run-without-api-keys-mock-mode)
-[![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-15%20Available-orange?style=for-the-badge)](.github/issues/CATALOG.md)
+[![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-15%20Available-orange?style=for-the-badge)](https://github.com/Saksham-official/CriteriaGuard/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-emerald?style=for-the-badge)](CONTRIBUTING.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Security Policy](https://img.shields.io/badge/Security-Policy%20Active-critical?style=for-the-badge)](SECURITY.md)
@@ -188,25 +188,25 @@ Add your rule in `backend/rules/`, write a unit test in `backend/tests/`, and su
 
 We have converted large tracks into **15 self-contained, testable issues**:
 
-| # | Issue Title | Labels | Difficulty | Ready to Work |
+| # | Issue Title | Labels | Difficulty | Ready to Claim |
 | :-: | :--- | :--- | :---: | :---: |
-| **01** | Add sample tender JSON fixture for CriteriaLens | `good first issue`, `backend`, `testing` | **Easy** | [View](.github/issues/CATALOG.md#issue-01) |
-| **02** | Add Pydantic validation for missing/invalid criteria fields | `good first issue`, `backend` | **Easy** | [View](.github/issues/CATALOG.md#issue-02) |
-| **03** | Write tests for mandatory vs optional clause classification | `good first issue`, `nlp`, `testing` | **Medium** | [View](.github/issues/CATALOG.md#issue-03) |
-| **04** | Add UI state for approved, rejected, and needs-review criteria | `good first issue`, `frontend` | **Easy** | [View](.github/issues/CATALOG.md#issue-04) |
-| **05** | Improve accessibility (a11y) of officer approval dashboard | `a11y`, `frontend` | **Medium** | [View](.github/issues/CATALOG.md#issue-05) |
-| **06** | Add empty and error states to verdict dashboard | `frontend`, `ux` | **Easy** | [View](.github/issues/CATALOG.md#issue-06) |
-| **07** | Add API error responses with consistent HTTP status codes | `backend`, `api` | **Medium** | [View](.github/issues/CATALOG.md#issue-07) |
-| **08** | Add unit tests for SHA-256 audit-chain append logic | `backend`, `security`, `testing` | **Medium** | [View](.github/issues/CATALOG.md#issue-08) |
-| **09** | Add CSV export for evaluation results | `feature`, `backend` | **Medium** | [View](.github/issues/CATALOG.md#issue-09) |
-| **10** | Add comprehensive documentation for criteria schema | `documentation`, `good first issue` | **Easy** | [View](.github/issues/CATALOG.md#issue-10) |
-| **11** | Add screenshot/GIF visual walkthrough to README | `documentation`, `good first issue` | **Easy** | [View](.github/issues/CATALOG.md#issue-11) |
-| **12** | Add GitHub issue and pull-request YAML templates | `documentation`, `ci` | **Easy** | [View](.github/issues/CATALOG.md#issue-12) |
-| **13** | Add SECURITY.md with responsible disclosure instructions | `security`, `documentation` | **Easy** | [View](.github/issues/CATALOG.md#issue-13) |
-| **14** | Add Docker Compose for frontend, backend, and Postgres | `devops`, `infrastructure` | **Medium** | [View](.github/issues/CATALOG.md#issue-14) |
-| **15** | Add CI workflow for lint, type-check, and automated tests | `ci`, `good first issue` | **Easy** | [View](.github/issues/CATALOG.md#issue-15) |
+| **01** | Add sample tender JSON fixture for CriteriaLens | `good first issue`, `backend`, `testing` | **Easy** | [Claim #5](https://github.com/Saksham-official/CriteriaGuard/issues/5) |
+| **02** | Add Pydantic validation for missing/invalid criteria fields | `good first issue`, `backend` | **Easy** | [Claim #6](https://github.com/Saksham-official/CriteriaGuard/issues/6) |
+| **03** | Write tests for mandatory vs optional clause classification | `good first issue`, `nlp`, `testing` | **Medium** | [Claim #7](https://github.com/Saksham-official/CriteriaGuard/issues/7) |
+| **04** | Add UI state for approved, rejected, and needs-review criteria | `good first issue`, `frontend` | **Easy** | [Claim #8](https://github.com/Saksham-official/CriteriaGuard/issues/8) |
+| **05** | Improve accessibility (a11y) of officer approval dashboard | `a11y`, `frontend` | **Medium** | [Claim #9](https://github.com/Saksham-official/CriteriaGuard/issues/9) |
+| **06** | Add empty and error states to verdict dashboard | `frontend`, `ux` | **Easy** | [Claim #10](https://github.com/Saksham-official/CriteriaGuard/issues/10) |
+| **07** | Add API error responses with consistent HTTP status codes | `backend`, `api` | **Medium** | [Claim #11](https://github.com/Saksham-official/CriteriaGuard/issues/11) |
+| **08** | Add unit tests for SHA-256 audit-chain append logic | `backend`, `security`, `testing` | **Medium** | [Claim #12](https://github.com/Saksham-official/CriteriaGuard/issues/12) |
+| **09** | Add CSV export for evaluation results | `feature`, `backend` | **Medium** | [Claim #13](https://github.com/Saksham-official/CriteriaGuard/issues/13) |
+| **10** | Add comprehensive documentation for criteria schema | `documentation`, `good first issue` | **Easy** | [Claim #14](https://github.com/Saksham-official/CriteriaGuard/issues/14) |
+| **11** | Add screenshot/GIF visual walkthrough to README | `documentation`, `good first issue` | **Easy** | [Claim #15](https://github.com/Saksham-official/CriteriaGuard/issues/15) |
+| **12** | Add GitHub issue and pull-request YAML templates | `documentation`, `ci` | **Easy** | [Claim #16](https://github.com/Saksham-official/CriteriaGuard/issues/16) |
+| **13** | Add SECURITY.md with responsible disclosure instructions | `security`, `documentation` | **Easy** | [Claim #17](https://github.com/Saksham-official/CriteriaGuard/issues/17) |
+| **14** | Add Docker Compose for frontend, backend, and Postgres | `devops`, `infrastructure` | **Medium** | [Claim #18](https://github.com/Saksham-official/CriteriaGuard/issues/18) |
+| **15** | Add CI workflow for lint, type-check, and automated tests | `ci`, `good first issue` | **Easy** | [Claim #19](https://github.com/Saksham-official/CriteriaGuard/issues/19) |
 
-👉 Read the full issue specifications and acceptance criteria in [.github/issues/CATALOG.md](.github/issues/CATALOG.md).
+👉 Browse and claim all active issues directly in the [GitHub Issues Tab](https://github.com/Saksham-official/CriteriaGuard/issues). Reference specifications are also maintained in [.github/issues/CATALOG.md](.github/issues/CATALOG.md).
 
 ---
 

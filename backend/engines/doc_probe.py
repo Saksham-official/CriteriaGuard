@@ -80,6 +80,7 @@ def _get_mock_extraction(criterion_dict: dict, documents_with_labels: str) -> Ex
     return ExtractionSchema(
         criterion_id=str(criterion_dict.get("id")),
         value_found=True,
+        not_found_reason=None,
         extracted_value=f"{numeric_val} (Verified from proposal)",
         extracted_value_numeric=numeric_val,
         source_document="Proposal_Document.pdf",
